@@ -1,7 +1,7 @@
 use std::any::Any;
 use std::cmp::PartialEq;
 use std::fs::File;
-use std::io::Read;
+use std::io::{Read, Write};
 use std::process::exit;
 use rand::distributions::{Alphanumeric, DistString};
 
@@ -111,6 +111,24 @@ fn main() {
     input_file.read_to_end(&mut file_buf).expect("Couldn't read file");
 
     let mut buf : Vec<String> = String::from_utf8(file_buf).expect("Error").split_whitespace().into_iter().map(|x| x.to_string()).collect();
+
+    for i in 0..buf.len() {
+        if buf[i] == "true" {
+            buf.remove(i);
+            buf.insert(i, "i8".to_string());
+            buf.insert(i, "1".to_string());
+        }
+        if buf[i] == "false" {
+            buf.remove(i);
+            buf.insert(i, "i8".to_string());
+            buf.insert(i, "0".to_string());
+        }
+        if buf[i] == "bool" {
+            buf.remove(i);
+            buf.insert(i, "i8".to_string());
+        }
+    }
+
     let mut i : usize = 0;
     while i < buf.len() {
         for c in 0..buf[i].len() {
@@ -141,7 +159,7 @@ fn main() {
                 Token::new_with_type(TypeID::FunctionDeclaration)
             } else if x == "let" {
                 Token::new_with_type(TypeID::VariableDeclaration)
-            } else if x == "+" {
+            } else if x == "+" || x == "-" || x == "*" || x == "/" || x == "rem" || x == "==" {
                 Token::new_with_type_and_text(TypeID::BinaryOperator, x)
             } else if x == "->" {
                 Token::new_with_type_and_text(TypeID::Sentinel, x)
@@ -158,6 +176,8 @@ fn main() {
             } else if x == "i32" {
                 Token::new_with_type_and_text(TypeID::Type, x)
             } else if x == "i64" {
+                Token::new_with_type_and_text(TypeID::Type, x)
+            } else if x == "i8" {
                 Token::new_with_type_and_text(TypeID::Type, x)
             } else {
                 Token::new_with_type_and_text(TypeID::UnknownToken, x)
@@ -234,7 +254,7 @@ fn main() {
 
     print_tokens(&tokens);
 
-    let mut names : Vec<(String, TypeID, TypeID)> = Vec::new(); //name, type, fake type. The middle one ended up being useless :(
+    let mut names : Vec<(String, TypeID, TypeID)> = Vec::new(); //name, type, fake type. The middle one ended up being ALMOST useless :(
 
     let mut write: String = String::new();
     write.push_str("declare dso_local i32 @puts(i8*)\ndeclare dso_local i32 @putchar(i8)\n\n");
@@ -245,7 +265,7 @@ fn main() {
             if tokens[i + 3].type_id == TypeID::Type {
                 fn_type = tokens[i + 3].text_if_applicable.clone();
             }
-            write.push_str(&*("define ".to_string() + &*fn_type + " @" + &*fn_name + " {\n"));
+            write.push_str(&*("define ".to_string() + &*fn_type + " @" + &*fn_name + "() {\n"));
         }
 
         if i < tokens.len() - 3 && tokens[i].type_id == TypeID::VariableDeclaration && tokens[i + 1].type_id == TypeID::VariableName {
@@ -255,6 +275,10 @@ fn main() {
                 var_type = tokens[i + 3].text_if_applicable.clone();
             }
             write.push_str(&*("%".to_string() + &*var_name + " = alloca " + &*var_type + "\n"));
+        }
+
+        if tokens[i].type_id == TypeID::Sentinel && tokens[i].text_if_applicable == "}" {
+            write.push_str("}\n");
         }
 
         if tokens[i].type_id == TypeID::Do {
@@ -274,37 +298,18 @@ fn main() {
             println!("len is {}", length);
             for j in (i + 1)..(i + length) {
                 if tokens[j].text_if_applicable == "->" {
-
+                    if tokens[j + 1].type_id != TypeID::VariableName && tokens[j + 1].type_id != TypeID::Ret {
+                        println!("UH OH!!!");
+                    }
+                    let top = names[names.len() - 1].clone();
+                    if tokens[j + 1].type_id == TypeID::Ret {
+                        write.push_str(&*("ret ".to_string() + type_as_string(&top.2) + " " + &*top.0 + "\n"));
+                    } else {
+                        write.push_str(&*("store ".to_string() + type_as_string(&top.2) + " " + &*top.0 + ", " + type_as_string(&tokens[j + 1].fake_type) + "* %" + &*tokens[j + 1].text_if_applicable + "\n"));
+                    }
+                    break;
                 }
                 if tokens[j].type_id != TypeID::BinaryOperator {
-                    // let first = j - 2;
-                    // let second = j - 1;
-                    // let name1 = "%".to_string() + &*get_next_rand_string();
-                    // let name2 = "%".to_string() + &*get_next_rand_string();
-                    // names.push((name1.clone(), tokens[first].type_id.clone(), tokens[first].fake_type.clone()));
-                    // names.push((name2.clone(), tokens[second].type_id.clone(), tokens[second].fake_type.clone()));
-                    // if tokens[first].type_id == TypeID::IntegerLiteral {
-                    //     if tokens[first].fake_type == TypeID::I32 {
-                    //         write.push_str(&*(name1.clone() + " = add i32 " + &*tokens[first].i32_if_applicable.to_string() + ", 0\n"));
-                    //     }
-                    //     if tokens[first].fake_type == TypeID::I64 {
-                    //         write.push_str(&*(name1.clone() + " = add i64 " + &*tokens[first].i64_if_applicable.to_string() + ", 0\n"));
-                    //     }
-                    //     if tokens[first].fake_type == TypeID::I8 {
-                    //         write.push_str(&*(name1.clone() + " = add i8 " + &*tokens[first].i8_if_applicable.to_string() + ", 0\n"));
-                    //     }
-                    // }
-                    // if tokens[second].type_id == TypeID::IntegerLiteral {
-                    //     if tokens[second].fake_type == TypeID::I32 {
-                    //         write.push_str(&*(name1.clone() + " = add i32 " + &*tokens[second].i32_if_applicable.to_string() + ", 0\n"));
-                    //     }
-                    //     if tokens[second].fake_type == TypeID::I64 {
-                    //         write.push_str(&*(name1.clone() + " = add i64 " + &*tokens[second].i64_if_applicable.to_string() + ", 0\n"));
-                    //     }
-                    //     if tokens[second].fake_type == TypeID::I8 {
-                    //         write.push_str(&*(name1.clone() + " = add i8 " + &*tokens[second].i8_if_applicable.to_string() + ", 0\n"));
-                    //     }
-                    // }
                     if tokens[j].type_id == TypeID::IntegerLiteral {
                         let name = "%".to_string() + &*get_next_rand_string();
                         names.push((name.clone(), tokens[j].type_id.clone(), tokens[j].fake_type.clone()));
@@ -343,6 +348,87 @@ fn main() {
                         names.pop();
                         names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone()));
                     }
+                    if tokens[j].text_if_applicable == "-" {
+                        let name = "%".to_string() + &*get_next_rand_string();
+                        println!("names len is {}", names.len());
+                        let value_1 = names[names.len() - 2].clone();
+                        let value_2 = names[names.len() - 1].clone();
+
+                        write.push_str(&*(name.as_str().to_string() + " = sub "));
+                        if value_1.1 == TypeID::IntegerLiteral {
+                            write.push_str(&*(type_as_string(&value_1.2).to_string() + " " + &*(value_1.0)));
+                        }
+                        if value_2.1 == TypeID::IntegerLiteral {
+                            write.push_str(&*(", ".to_string() + &*(value_2.0)));
+                        }
+                        write.push_str("\n");
+
+                        names.pop();
+                        names.pop();
+                        names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone()));
+                    }
+                    if tokens[j].text_if_applicable == "*" {
+                        let name = "%".to_string() + &*get_next_rand_string();
+                        println!("names len is {}", names.len());
+                        let value_1 = names[names.len() - 2].clone();
+                        let value_2 = names[names.len() - 1].clone();
+
+                        write.push_str(&*(name.as_str().to_string() + " = mul "));
+                        if value_1.1 == TypeID::IntegerLiteral {
+                            write.push_str(&*(type_as_string(&value_1.2).to_string() + " " + &*(value_1.0)));
+                        }
+                        if value_2.1 == TypeID::IntegerLiteral {
+                            write.push_str(&*(", ".to_string() + &*(value_2.0)));
+                        }
+                        write.push_str("\n");
+
+                        names.pop();
+                        names.pop();
+                        names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone()));
+                    }
+                    if tokens[j].text_if_applicable == "/" {
+                        let name = "%".to_string() + &*get_next_rand_string();
+                        println!("names len is {}", names.len());
+                        let value_1 = names[names.len() - 2].clone();
+                        let value_2 = names[names.len() - 1].clone();
+
+                        write.push_str(&*(name.as_str().to_string() + " = sdiv "));
+                        if value_1.1 == TypeID::IntegerLiteral {
+                            write.push_str(&*(type_as_string(&value_1.2).to_string() + " " + &*(value_1.0)));
+                        }
+                        if value_2.1 == TypeID::IntegerLiteral {
+                            write.push_str(&*(", ".to_string() + &*(value_2.0)));
+                        }
+                        write.push_str("\n");
+
+                        names.pop();
+                        names.pop();
+                        names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone()));
+                    }
+                    if tokens[j].text_if_applicable == "rem" {
+                        let name = "%".to_string() + &*get_next_rand_string();
+                        println!("names len is {}", names.len());
+                        let value_1 = names[names.len() - 2].clone();
+                        let value_2 = names[names.len() - 1].clone();
+
+                        write.push_str(&*(name.as_str().to_string() + " = srem " + type_as_string(&value_1.2) + " " + &*(value_1.0) + ", " + &*(value_2.0) + "\n"));
+
+                        names.pop();
+                        names.pop();
+                        names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone()));
+                    }
+                    if tokens[j].text_if_applicable == "==" {
+                        let name = "%".to_string() + &*get_next_rand_string();
+                        println!("names len is {}", names.len());
+                        let value_1 = names[names.len() - 2].clone();
+                        let value_2 = names[names.len() - 1].clone();
+
+                        write.push_str(&*(name.as_str().to_string() + " = icmp eq " + type_as_string(&value_1.2) + " " + &*(value_1.0) + ", " + &*(value_2.0) + "\n"));
+
+                        names.pop();
+                        names.pop();
+                        names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone()));
+                    }
                 }
             }
         }
@@ -350,11 +436,27 @@ fn main() {
     println!("{}", write);
 
     let mut write_file = File::create("out.ll").expect("Couldn't make write file");
+    let tmp = write.into_bytes();
+    write_file.write_all(&tmp);
 
 }
 
 fn get_next_rand_string() -> String {
-    Alphanumeric.sample_string(&mut rand::thread_rng(), 25)
+    let mut out = Alphanumeric.sample_string(&mut rand::thread_rng(), 25);
+    if out.chars().nth(0).unwrap() == '0' ||
+        out.chars().nth(0).unwrap() == '1' ||
+        out.chars().nth(0).unwrap() == '2' ||
+        out.chars().nth(0).unwrap() == '3' ||
+        out.chars().nth(0).unwrap() == '4' ||
+        out.chars().nth(0).unwrap() == '5' ||
+        out.chars().nth(0).unwrap() == '6' ||
+        out.chars().nth(0).unwrap() == '7' ||
+        out.chars().nth(0).unwrap() == '8' ||
+        out.chars().nth(0).unwrap() == '9' {
+        out.remove(0);
+        out.insert(0, 'a');
+    }
+    out
 }
 
 fn type_as_string(inp : &TypeID) -> &str {
