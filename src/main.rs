@@ -11,6 +11,7 @@ enum TypeID {
     I32,
     I64,
     I8,
+    I1,
     BinaryOperator,
     Sentinel,
     Type,
@@ -25,7 +26,8 @@ enum TypeID {
     IntegerLiteral,
     Do,
     RemoveMe,
-    None
+    None,
+    Operator
 }
 
 struct Token {
@@ -115,17 +117,17 @@ fn main() {
     for i in 0..buf.len() {
         if buf[i] == "true" {
             buf.remove(i);
-            buf.insert(i, "i8".to_string());
+            buf.insert(i, "i1".to_string());
             buf.insert(i, "1".to_string());
         }
         if buf[i] == "false" {
             buf.remove(i);
-            buf.insert(i, "i8".to_string());
+            buf.insert(i, "i1".to_string());
             buf.insert(i, "0".to_string());
         }
         if buf[i] == "bool" {
             buf.remove(i);
-            buf.insert(i, "i8".to_string());
+            buf.insert(i, "i1".to_string());
         }
     }
 
@@ -165,6 +167,8 @@ fn main() {
                 Token::new_with_type_and_text(TypeID::Sentinel, x)
             } else if x == ":" {
                 Token::new_with_type_and_text(TypeID::Sentinel, x)
+            } else if x == "?" {
+                Token::new_with_type_and_text(TypeID::Operator, x)
             } else if x == "{" {
                 Token::new_with_type_and_text(TypeID::Sentinel, x)
             } else if x == "}" {
@@ -178,6 +182,8 @@ fn main() {
             } else if x == "i64" {
                 Token::new_with_type_and_text(TypeID::Type, x)
             } else if x == "i8" {
+                Token::new_with_type_and_text(TypeID::Type, x)
+            } else if x == "i1" {
                 Token::new_with_type_and_text(TypeID::Type, x)
             } else {
                 Token::new_with_type_and_text(TypeID::UnknownToken, x)
@@ -216,8 +222,10 @@ fn main() {
                         TypeID::I32
                     } else if tokens[i + 2].text_if_applicable == type_as_string(&TypeID::I64) {
                         TypeID::I64
-                    } else {
+                    } else if tokens[i + 2].text_if_applicable == type_as_string(&TypeID::I8) {
                         TypeID::I8
+                    } else {
+                        TypeID::I1
                     };
                     var_names.push((tokens[i].text_if_applicable.clone(), tokens[i].fake_type.clone()));
                 }
@@ -238,6 +246,9 @@ fn main() {
                     type_id = TypeID::I8;
                     tokens[i].i8_if_applicable = tokens[i].text_if_applicable.parse::<i8>().unwrap();
                 }
+                if tokens[i + 1].text_if_applicable == "i1" {
+                    type_id = TypeID::I1;
+                }
                 tokens[i].fake_type = type_id;
             }
         }
@@ -254,7 +265,6 @@ fn main() {
 
     print_tokens(&tokens);
 
-    let mut names : Vec<(String, TypeID, TypeID)> = Vec::new(); //name, type, fake type. The middle one ended up being ALMOST useless :(
 
     let mut write: String = String::new();
     write.push_str("declare dso_local i32 @puts(i8*)\ndeclare dso_local i32 @putchar(i8)\n\n");
@@ -282,21 +292,49 @@ fn main() {
         }
 
         if tokens[i].type_id == TypeID::Do {
+            let mut names : Vec<(String, TypeID, TypeID)> = Vec::new(); //name, type, fake type. The middle one ended up being ALMOST useless :(
             print!("DO MENTIONED LESS GOO. Nearby toks are ");
             print_token(&tokens[i - 1]);
             print!(" and ");
             print_token(&tokens[i + 1]);
             println!();
-            let mut cntr = 0;
             let mut length = 0;
-            while i + cntr < tokens.len() {
-                if tokens[i + cntr].type_id == TypeID::Sentinel && tokens[i + cntr].text_if_applicable == ";" {
-                    length = cntr;
-                }
-                cntr += 1;
+            while i + length < tokens.len() && tokens[i + length].text_if_applicable != ";" {
+                length += 1;
             }
             println!("len is {}", length);
             for j in (i + 1)..(i + length) {
+                if tokens[j].text_if_applicable == "?" && names.len() > 2 {
+                    println!("? names len is {}", names.len());
+                    let cond = names[names.len() - 3].clone();
+                    let first = names[names.len() - 2].clone();
+                    let second = names[names.len() - 1].clone();
+                    if cond.2 != TypeID::I1 {
+                        println!("Error: condition type provided to '?' is not bool");
+                    }
+                    if first.2 != second.2 {
+                        println!("Error: types of output possibilities provided to '?' are not the same");
+                    }
+                    let label1_name = get_next_rand_string();
+                    let label2_name = get_next_rand_string();
+                    let finish_name = get_next_rand_string();
+                    let tmp_var_name = get_next_rand_string();
+                    write.push_str(&*("%".to_string() + &*tmp_var_name + " = alloca " + type_as_string(&first.2) + "\n"));
+                    write.push_str(&*("br i1 ".to_string() + &*cond.0 + ", label %" + &*label1_name + ", label %" + &*label2_name + "\n\n"));
+                    write.push_str(&*(label1_name.clone() + ":\nstore " + type_as_string(&first.2) + " " + &*first.0 + ", " + type_as_string(&first.2) + "* %" + &*tmp_var_name + "\nbr label %" + &*finish_name + "\n\n"));
+                    write.push_str(&*(label2_name.clone() + ":\nstore " + type_as_string(&second.2) + " " + &*second.0 + ", " + type_as_string(&second.2) + "* %" + &*tmp_var_name + "\nbr label %" + &*finish_name + "\n\n"));
+                    write.push_str(&*(finish_name.clone() + ":\n"));
+
+                    let tmp_var_name_again = get_next_rand_string();
+                    write.push_str(&*("%".to_string() + &*tmp_var_name_again + " = load " + type_as_string(&first.2) + ", " + type_as_string(&first.2) + "* %" + &*tmp_var_name + "\n"));
+
+                    names.pop();
+                    names.pop();
+                    names.pop();
+                    names.push(("%".to_string() + &*tmp_var_name_again, TypeID::IntegerLiteral, first.2.clone()));
+                } else if tokens[j].text_if_applicable == "?" {
+                    println!("Error: stack length not sufficient for '?'");
+                }
                 if tokens[j].text_if_applicable == "->" {
                     if tokens[j + 1].type_id != TypeID::VariableName && tokens[j + 1].type_id != TypeID::Ret {
                         println!("UH OH!!!");
@@ -304,10 +342,10 @@ fn main() {
                     let top = names[names.len() - 1].clone();
                     if tokens[j + 1].type_id == TypeID::Ret {
                         write.push_str(&*("ret ".to_string() + type_as_string(&top.2) + " " + &*top.0 + "\n"));
+                        break;
                     } else {
                         write.push_str(&*("store ".to_string() + type_as_string(&top.2) + " " + &*top.0 + ", " + type_as_string(&tokens[j + 1].fake_type) + "* %" + &*tokens[j + 1].text_if_applicable + "\n"));
                     }
-                    break;
                 }
                 if tokens[j].type_id != TypeID::BinaryOperator {
                     if tokens[j].type_id == TypeID::IntegerLiteral {
@@ -322,6 +360,9 @@ fn main() {
                         }
                         if tokens[j].fake_type == TypeID::I8 {
                             write.push_str(&*(name.clone() + " = add i8 " + &*tokens[j].i8_if_applicable.to_string() + ", 0\n"));
+                        }
+                        if tokens[j].fake_type == TypeID::I1 {
+                            write.push_str(&*(name.clone() + " = add i1 " + &*tokens[j].text_if_applicable + ", 0\n"));
                         }
                     } else if tokens[j].type_id == TypeID::VariableName {
                         let name = "%".to_string() + &*get_next_rand_string();
@@ -419,7 +460,7 @@ fn main() {
                     }
                     if tokens[j].text_if_applicable == "==" {
                         let name = "%".to_string() + &*get_next_rand_string();
-                        println!("names len is {}", names.len());
+                        println!("== MENTIONED LESS GOOO is {}", names.len());
                         let value_1 = names[names.len() - 2].clone();
                         let value_2 = names[names.len() - 1].clone();
 
@@ -431,6 +472,11 @@ fn main() {
                     }
                 }
             }
+            print!("\nNames are: ");
+            for cntr in 0..names.len() {
+                print!("| {} ", type_as_string(&names[cntr].2));
+            }
+            println!();
         }
     }
     println!("{}", write);
@@ -442,7 +488,7 @@ fn main() {
 }
 
 fn get_next_rand_string() -> String {
-    let mut out = Alphanumeric.sample_string(&mut rand::thread_rng(), 25);
+    let mut out = Alphanumeric.sample_string(&mut rand::thread_rng(), 30);
     if out.chars().nth(0).unwrap() == '0' ||
         out.chars().nth(0).unwrap() == '1' ||
         out.chars().nth(0).unwrap() == '2' ||
@@ -475,6 +521,7 @@ fn type_as_string(inp : &TypeID) -> &str {
         TypeID::I32 => "i32",
         TypeID::I64 => "i64",
         TypeID::I8 => "i8",
+        TypeID::I1 => "i1",
         TypeID::Ret => "Ret",
         _ => "IDK"
     }
