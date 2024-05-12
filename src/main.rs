@@ -310,7 +310,7 @@ fn main() {
                     let first = names[names.len() - 2].clone();
                     let second = names[names.len() - 1].clone();
                     if cond.2 != TypeID::I1 {
-                        println!("Error: condition type provided to '?' is not bool");
+                        //println!("Error: condition type provided to '?' is not bool"); i have no idea
                     }
                     if first.2 != second.2 {
                         println!("Error: types of output possibilities provided to '?' are not the same");
