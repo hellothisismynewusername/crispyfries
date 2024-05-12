@@ -319,14 +319,14 @@ fn main() {
                     let label2_name = get_next_rand_string();
                     let finish_name = get_next_rand_string();
                     let tmp_var_name = get_next_rand_string();
-                    write.push_str(&*("%".to_string() + &*tmp_var_name + " = alloca " + type_as_string(&first.2) + "\n"));
+                    write.push_str(&*("%".to_string() + &*tmp_var_name + " = alloca " + type_as_string(&second.2) + "\n"));
                     write.push_str(&*("br i1 ".to_string() + &*cond.0 + ", label %" + &*label1_name + ", label %" + &*label2_name + "\n\n"));
-                    write.push_str(&*(label1_name.clone() + ":\nstore " + type_as_string(&first.2) + " " + &*first.0 + ", " + type_as_string(&first.2) + "* %" + &*tmp_var_name + "\nbr label %" + &*finish_name + "\n\n"));
+                    write.push_str(&*(label1_name.clone() + ":\nstore " + type_as_string(&second.2) + " " + &*first.0 + ", " + type_as_string(&second.2) + "* %" + &*tmp_var_name + "\nbr label %" + &*finish_name + "\n\n"));
                     write.push_str(&*(label2_name.clone() + ":\nstore " + type_as_string(&second.2) + " " + &*second.0 + ", " + type_as_string(&second.2) + "* %" + &*tmp_var_name + "\nbr label %" + &*finish_name + "\n\n"));
                     write.push_str(&*(finish_name.clone() + ":\n"));
 
                     let tmp_var_name_again = get_next_rand_string();
-                    write.push_str(&*("%".to_string() + &*tmp_var_name_again + " = load " + type_as_string(&first.2) + ", " + type_as_string(&first.2) + "* %" + &*tmp_var_name + "\n"));
+                    write.push_str(&*("%".to_string() + &*tmp_var_name_again + " = load " + type_as_string(&second.2) + ", " + type_as_string(&second.2) + "* %" + &*tmp_var_name + "\n"));
 
                     names.pop();
                     names.pop();
