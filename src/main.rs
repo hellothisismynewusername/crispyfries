@@ -27,7 +27,9 @@ enum TypeID {
     Do,
     RemoveMe,
     None,
-    Operator
+    Operator,
+    If,
+    While
 }
 
 struct Token {
@@ -161,14 +163,22 @@ fn main() {
                 Token::new_with_type(TypeID::FunctionDeclaration)
             } else if x == "let" {
                 Token::new_with_type(TypeID::VariableDeclaration)
-            } else if x == "+" || x == "-" || x == "*" || x == "/" || x == "rem" || x == "==" {
+            } else if x == "+" || x == "-" || x == "*" || x == "/" || x == "rem" || x == "==" || x == "!=" {
                 Token::new_with_type_and_text(TypeID::BinaryOperator, x)
             } else if x == "->" {
                 Token::new_with_type_and_text(TypeID::Sentinel, x)
             } else if x == ":" {
                 Token::new_with_type_and_text(TypeID::Sentinel, x)
-            } else if x == "?" {
+            } else if x == "?" {//only use ? with constants as the output options, but also this is pretty useless besides that b/c it will process both options BEFORE checking the condition
                 Token::new_with_type_and_text(TypeID::Operator, x)
+            } else if x == "if" {
+                Token::new_with_type_and_text(TypeID::If, x)
+            } else if x == "else" {
+                Token::new_with_type_and_text(TypeID::Sentinel, x)
+            } else if x == "endif" {
+                Token::new_with_type_and_text(TypeID::Sentinel, x)
+            } else if x == "while" {
+                Token::new_with_type_and_text(TypeID::Sentinel, x)
             } else if x == "{" {
                 Token::new_with_type_and_text(TypeID::Sentinel, x)
             } else if x == "}" {
@@ -293,6 +303,7 @@ fn main() {
 
         if tokens[i].type_id == TypeID::Do {
             let mut names : Vec<(String, TypeID, TypeID)> = Vec::new(); //name, type, fake type. The middle one ended up being ALMOST useless :(
+            let mut labels : Vec<(String, String, String)> = Vec::new(); //(enter1, enter2, exit)
             print!("DO MENTIONED LESS GOO. Nearby toks are ");
             print_token(&tokens[i - 1]);
             print!(" and ");
@@ -304,6 +315,24 @@ fn main() {
             }
             println!("len is {}", length);
             for j in (i + 1)..(i + length) {
+                if tokens[j].text_if_applicable == "endif" {
+                    write.push_str(&*("br label %".to_string() + &*labels[labels.len() - 1].2 + "\n"));
+                    write.push_str(&*("\n".to_string() + &*labels[labels.len() - 1].2 + ":\n"));
+                    labels.pop();
+                }
+                if tokens[j].text_if_applicable == "else" {
+                    write.push_str(&*("br label %".to_string() + &*labels[labels.len() - 1].2 + "\n"));
+                    write.push_str(&*("\n".to_string() + &*labels[labels.len() - 1].1 + ":\n"));
+                }
+                if tokens[j].type_id == TypeID::If {                    //you may need a stack of labels in case of embedded ifs
+                    let cond = names[names.len() - 1].clone();
+                    let label1_name = get_next_rand_string();
+                    let label2_name = get_next_rand_string();
+                    let exit_name = get_next_rand_string();
+                    write.push_str(&*("br i1 ".to_string() + &*cond.0 + ", label %" + &*label1_name + ", label %" + &*label2_name + "\n\n"));
+                    labels.push((label1_name.clone(), label2_name.clone(), exit_name.clone()));
+                    write.push_str(&*(label1_name.clone() + ":\n"));
+                }
                 if tokens[j].text_if_applicable == "?" && names.len() > 2 {
                     println!("? names len is {}", names.len());
                     let cond = names[names.len() - 3].clone();
@@ -342,7 +371,6 @@ fn main() {
                     let top = names[names.len() - 1].clone();
                     if tokens[j + 1].type_id == TypeID::Ret {
                         write.push_str(&*("ret ".to_string() + type_as_string(&top.2) + " " + &*top.0 + "\n"));
-                        break;
                     } else {
                         write.push_str(&*("store ".to_string() + type_as_string(&top.2) + " " + &*top.0 + ", " + type_as_string(&tokens[j + 1].fake_type) + "* %" + &*tokens[j + 1].text_if_applicable + "\n"));
                     }
@@ -465,6 +493,18 @@ fn main() {
                         let value_2 = names[names.len() - 1].clone();
 
                         write.push_str(&*(name.as_str().to_string() + " = icmp eq " + type_as_string(&value_1.2) + " " + &*(value_1.0) + ", " + &*(value_2.0) + "\n"));
+
+                        names.pop();
+                        names.pop();
+                        names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone()));
+                    }
+                    if tokens[j].text_if_applicable == "!=" {
+                        let name = "%".to_string() + &*get_next_rand_string();
+                        println!("!= MENTIONED LESS GOOO is {}", names.len());
+                        let value_1 = names[names.len() - 2].clone();
+                        let value_2 = names[names.len() - 1].clone();
+
+                        write.push_str(&*(name.as_str().to_string() + " = icmp ne " + type_as_string(&value_1.2) + " " + &*(value_1.0) + ", " + &*(value_2.0) + "\n"));
 
                         names.pop();
                         names.pop();
