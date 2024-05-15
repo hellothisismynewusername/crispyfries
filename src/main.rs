@@ -317,6 +317,23 @@ fn main() {
             }
             println!("len is {}", length);
             for j in (i + 1)..(i + length) {
+                if tokens[j].text_if_applicable == "endwhile" {
+                    let label = labels[labels.len() - 1].clone();
+                    write.push_str(&*("br label %".to_string() + &*label.1 + "\n"));
+                    write.push_str(&*(label.2.clone() + ":\n"));
+                    labels.pop();
+                }
+                if tokens[j].type_id == TypeID::While {//TODO: the problems is that i need it to re-evaluate the condtion... maybe move the while outside of the do block and make it rely on a variable?
+                    let cond = names[names.len() - 1].clone();     //TODO: you should check if latest name is a bool
+                    let label1_name = get_next_rand_string();
+                    let label2_name = get_next_rand_string(); //right before conditional break
+                    let exit_name = get_next_rand_string();
+                    write.push_str(&*("br label %".to_string() + &*label1_name + "\n"));
+                    write.push_str(&*("\n".to_string() + &*label2_name.clone() + ":\n"));
+                    write.push_str(&*("br i1 ".to_string() + &*cond.0 + ", label %" + &*label1_name + ", label %" + &*exit_name + "\n\n"));
+                    labels.push((label1_name.clone(), label2_name.clone(), exit_name.clone()));
+                    write.push_str(&*(label1_name.clone() + ":\n"));
+                }
                 if tokens[j].text_if_applicable == "endif" {
                     write.push_str(&*("br label %".to_string() + &*labels[labels.len() - 1].2 + "\n"));
                     write.push_str(&*("\n".to_string() + &*labels[labels.len() - 1].2 + ":\n"));
@@ -327,7 +344,7 @@ fn main() {
                     write.push_str(&*("\n".to_string() + &*labels[labels.len() - 1].1 + ":\n"));
                 }
                 if tokens[j].type_id == TypeID::If {                    //you may need a stack of labels in case of embedded ifs
-                    let cond = names[names.len() - 1].clone();
+                    let cond = names[names.len() - 1].clone();     //TODO: you should check if latest name is a bool
                     let label1_name = get_next_rand_string();
                     let label2_name = get_next_rand_string();
                     let exit_name = get_next_rand_string();
