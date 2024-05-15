@@ -178,6 +178,8 @@ fn main() {
             } else if x == "endif" {
                 Token::new_with_type_and_text(TypeID::Sentinel, x)
             } else if x == "while" {
+                Token::new_with_type_and_text(TypeID::While, x)
+            } else if x == "endwhile" {
                 Token::new_with_type_and_text(TypeID::Sentinel, x)
             } else if x == "{" {
                 Token::new_with_type_and_text(TypeID::Sentinel, x)
