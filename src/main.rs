@@ -280,6 +280,7 @@ fn main() {
 
     let mut write: String = String::new();
     write.push_str("declare dso_local i32 @puts(i8*)\ndeclare dso_local i32 @putchar(i8)\n\n");
+    let mut not_labels : Vec<(String, String, String)> = Vec::new();
     for i in 0..tokens.len() {
         if i < tokens.len() - 3 && tokens[i].type_id == TypeID::FunctionDeclaration && tokens[i + 1].type_id == TypeID::FunctionName {
             let fn_name = tokens[i + 1].text_if_applicable.clone();
@@ -303,6 +304,27 @@ fn main() {
             write.push_str("}\n");
         }
 
+        if tokens[i].text_if_applicable == "endwhile" {
+            let label = not_labels[not_labels.len() - 1].clone();
+            write.push_str(&*("br label %".to_string() + &*label.1 + "\n"));
+            write.push_str(&*(label.2.clone() + ":\n"));
+            not_labels.pop();
+        }
+
+        if tokens[i].type_id == TypeID::While && i > 0 && tokens[i - 1].type_id == TypeID::VariableName {
+            let cond_text = &*tokens[i - 1].text_if_applicable;
+            let cond_loaded_name = get_next_rand_string();
+            let label1_name = get_next_rand_string();
+            let label2_name = get_next_rand_string();
+            let exit_name = get_next_rand_string();
+            write.push_str(&*("br label %".to_string() + &*label1_name + "\n"));
+            write.push_str(&*("\n".to_string() + &*label2_name.clone() + ":\n"));
+            write.push_str(&*("%".to_string() + &*cond_loaded_name + " = load i1, i1* %" + &*cond_text + "\n"));
+            write.push_str(&*("br i1 %".to_string() + &*cond_loaded_name + ", label %" + &*label1_name + ", label %" + &*exit_name + "\n\n"));
+            not_labels.push((label1_name.clone(), label2_name.clone(), exit_name.clone()));
+            write.push_str(&*(label1_name.clone() + ":\n"));
+        }
+
         if tokens[i].type_id == TypeID::Do {
             let mut names : Vec<(String, TypeID, TypeID)> = Vec::new(); //name, type, fake type. The middle one ended up being ALMOST useless :(
             let mut labels : Vec<(String, String, String)> = Vec::new(); //(enter1, enter2, exit)
@@ -317,23 +339,23 @@ fn main() {
             }
             println!("len is {}", length);
             for j in (i + 1)..(i + length) {
-                if tokens[j].text_if_applicable == "endwhile" {
-                    let label = labels[labels.len() - 1].clone();
-                    write.push_str(&*("br label %".to_string() + &*label.1 + "\n"));
-                    write.push_str(&*(label.2.clone() + ":\n"));
-                    labels.pop();
-                }
-                if tokens[j].type_id == TypeID::While {//TODO: the problems is that i need it to re-evaluate the condtion... maybe move the while outside of the do block and make it rely on a variable?
-                    let cond = names[names.len() - 1].clone();     //TODO: you should check if latest name is a bool
-                    let label1_name = get_next_rand_string();
-                    let label2_name = get_next_rand_string(); //right before conditional break
-                    let exit_name = get_next_rand_string();
-                    write.push_str(&*("br label %".to_string() + &*label1_name + "\n"));
-                    write.push_str(&*("\n".to_string() + &*label2_name.clone() + ":\n"));
-                    write.push_str(&*("br i1 ".to_string() + &*cond.0 + ", label %" + &*label1_name + ", label %" + &*exit_name + "\n\n"));
-                    labels.push((label1_name.clone(), label2_name.clone(), exit_name.clone()));
-                    write.push_str(&*(label1_name.clone() + ":\n"));
-                }
+                // if tokens[j].text_if_applicable == "endwhile" {
+                //     let label = labels[labels.len() - 1].clone();
+                //     write.push_str(&*("br label %".to_string() + &*label.1 + "\n"));
+                //     write.push_str(&*(label.2.clone() + ":\n"));
+                //     labels.pop();
+                // }
+                // if tokens[j].type_id == TypeID::While {//TODO: the problems is that i need it to re-evaluate the condtion... maybe move the while outside of the do block and make it rely on a variable?
+                //     let cond = names[names.len() - 1].clone();     //TODO: you should check if latest name is a bool
+                //     let label1_name = get_next_rand_string();
+                //     let label2_name = get_next_rand_string(); //right before conditional break
+                //     let exit_name = get_next_rand_string();
+                //     write.push_str(&*("br label %".to_string() + &*label1_name + "\n"));
+                //     write.push_str(&*("\n".to_string() + &*label2_name.clone() + ":\n"));
+                //     write.push_str(&*("br i1 ".to_string() + &*cond.0 + ", label %" + &*label1_name + ", label %" + &*exit_name + "\n\n"));
+                //     labels.push((label1_name.clone(), label2_name.clone(), exit_name.clone()));
+                //     write.push_str(&*(label1_name.clone() + ":\n"));
+                // }
                 if tokens[j].text_if_applicable == "endif" {
                     write.push_str(&*("br label %".to_string() + &*labels[labels.len() - 1].2 + "\n"));
                     write.push_str(&*("\n".to_string() + &*labels[labels.len() - 1].2 + ":\n"));
