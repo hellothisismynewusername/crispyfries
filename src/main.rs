@@ -29,7 +29,10 @@ enum TypeID {
     None,
     Operator,
     If,
-    While
+    While,
+    Ptr,
+    PtrNotation,
+    Malloc
 }
 
 struct Token {
@@ -143,6 +146,13 @@ fn main() {
                 buf.insert(i + 1, ";".to_string());
                 i += 1;
             }
+            if buf[i].chars().nth(c).is_some() && buf[i].chars().nth(c).unwrap() == '^' {
+
+                buf.insert(i, buf[i].chars().take_while(|x| *x != '^').collect());
+                buf.remove(i + 1);
+                buf.insert(i + 1, "^".to_string());
+                i += 1;
+            }
         }
         i += 1;
     }
@@ -197,6 +207,10 @@ fn main() {
                 Token::new_with_type_and_text(TypeID::Type, x)
             } else if x == "i1" {
                 Token::new_with_type_and_text(TypeID::Type, x)
+            } else if x == "^" {
+                Token::new_with_type_and_text(TypeID::PtrNotation, x)
+            } else if x == "malloc" {
+                Token::new_with_type(TypeID::Malloc)
             } else {
                 Token::new_with_type_and_text(TypeID::UnknownToken, x)
             }
@@ -266,6 +280,16 @@ fn main() {
         }
     }
 
+    while i < tokens.len() {
+        if i > 0 && tokens[i].type_id == TypeID::PtrNotation && tokens[i - 1].type_id == TypeID::Type {
+            tokens[i - 1].fake_type = tokens[i - 1].type_id.clone();
+            tokens[i - 1].type_id = TypeID::Ptr;
+            tokens.remove(i);
+            i -= 1;
+        }
+        i += 1;
+    }
+
     for i in 0..tokens.len() {
         for name in &var_names {
             if tokens[i].text_if_applicable == name.0 {
@@ -279,7 +303,7 @@ fn main() {
 
 
     let mut write: String = String::new();
-    write.push_str("declare dso_local i32 @puts(i8*)\ndeclare dso_local i32 @putchar(i8)\n\n");
+    write.push_str("declare dso_local i32 @puts(i8*)\ndeclare dso_local i32 @putchar(i8)\ndeclare i8* @malloc(i32)\n\n");
     let mut not_labels : Vec<(String, String, String)> = Vec::new();
     for i in 0..tokens.len() {
         if i < tokens.len() - 3 && tokens[i].type_id == TypeID::FunctionDeclaration && tokens[i + 1].type_id == TypeID::FunctionName {
@@ -326,7 +350,7 @@ fn main() {
         }
 
         if tokens[i].type_id == TypeID::Do {
-            let mut names : Vec<(String, TypeID, TypeID)> = Vec::new(); //name, type, fake type. The middle one ended up being ALMOST useless :(
+            let mut names : Vec<(String, TypeID, TypeID)> = Vec::new(); //name, type, fake type
             let mut labels : Vec<(String, String, String)> = Vec::new(); //(enter1, enter2, exit)
             print!("DO MENTIONED LESS GOO. Nearby toks are ");
             print_token(&tokens[i - 1]);
@@ -339,23 +363,14 @@ fn main() {
             }
             println!("len is {}", length);
             for j in (i + 1)..(i + length) {
-                // if tokens[j].text_if_applicable == "endwhile" {
-                //     let label = labels[labels.len() - 1].clone();
-                //     write.push_str(&*("br label %".to_string() + &*label.1 + "\n"));
-                //     write.push_str(&*(label.2.clone() + ":\n"));
-                //     labels.pop();
-                // }
-                // if tokens[j].type_id == TypeID::While {//TODO: the problems is that i need it to re-evaluate the condtion... maybe move the while outside of the do block and make it rely on a variable?
-                //     let cond = names[names.len() - 1].clone();     //TODO: you should check if latest name is a bool
-                //     let label1_name = get_next_rand_string();
-                //     let label2_name = get_next_rand_string(); //right before conditional break
-                //     let exit_name = get_next_rand_string();
-                //     write.push_str(&*("br label %".to_string() + &*label1_name + "\n"));
-                //     write.push_str(&*("\n".to_string() + &*label2_name.clone() + ":\n"));
-                //     write.push_str(&*("br i1 ".to_string() + &*cond.0 + ", label %" + &*label1_name + ", label %" + &*exit_name + "\n\n"));
-                //     labels.push((label1_name.clone(), label2_name.clone(), exit_name.clone()));
-                //     write.push_str(&*(label1_name.clone() + ":\n"));
-                // }
+                if tokens[j].type_id == TypeID::Malloc && names.len() > 1 && j > 0 {
+                    let name = get_next_rand_string();
+                    let ptr_type = tokens[j - 1].text_if_applicable.clone();
+                    let inp_size = names[names.len() - 1].clone();
+                    write.push_str(&*("%".to_string() + &*name + " = call " + &*ptr_type +  " @malloc(" + type_as_string(&inp_size.2) + " " + &*inp_size.0 + "\n"));
+                    names.pop();
+                    names.push((name.clone(), TypeID::Ptr, inp_size.2.clone()));
+                }
                 if tokens[j].text_if_applicable == "endif" {
                     write.push_str(&*("br label %".to_string() + &*labels[labels.len() - 1].2 + "\n"));
                     write.push_str(&*("\n".to_string() + &*labels[labels.len() - 1].2 + ":\n"));
@@ -586,6 +601,32 @@ fn get_next_rand_string() -> String {
     out
 }
 
+// I32,
+// I64,
+// I8,
+// I1,
+// BinaryOperator,
+// Sentinel,
+// Type,
+// StringLiteral,
+// FunctionDeclaration,
+// VariableDeclaration,
+// UnknownToken,
+// EOF,
+// FunctionName,
+// VariableName,
+// Ret,
+// IntegerLiteral,
+// Do,
+// RemoveMe,
+// None,
+// Operator,
+// If,
+// While,
+// Ptr,
+// PtrNotation,
+// Malloc
+
 fn type_as_string(inp : &TypeID) -> &str {
     match *inp {
         TypeID::UnknownToken => "Unk",
@@ -604,6 +645,12 @@ fn type_as_string(inp : &TypeID) -> &str {
         TypeID::I8 => "i8",
         TypeID::I1 => "i1",
         TypeID::Ret => "Ret",
+        TypeID::Operator => "Operator",
+        TypeID::If => "If",
+        TypeID::While => "While",
+        TypeID::Ptr => "Ptr",
+        TypeID::PtrNotation => "PtrNotation",
+        TypeID::Malloc => "Malloc",
         _ => "IDK"
     }
 }
