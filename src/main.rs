@@ -145,6 +145,18 @@ fn main() {
             buf.remove(i);
             buf.insert(i, "i1".to_string());
         }
+        if buf[i].len() == 3 && buf[i].chars().nth(0).unwrap() == '\'' && buf[i].chars().nth(2).unwrap() == '\'' {
+            let c : char = buf[i].chars().nth(1).unwrap();
+            if c.is_ascii() {
+                let num : u8 = (c as u32).try_into().unwrap_or_default();
+                buf.remove(i);
+                buf.insert(i, "i8".to_string());
+                buf.insert(i, num.to_string());
+            } else {
+                println!("Error: not an ASCII character");
+                exit(1);
+            }
+        }
     }
 
     let mut i : usize = 0;
@@ -408,8 +420,7 @@ fn main() {
                     if tokens[j].text_if_applicable == "puts" && names.len() > 0 {
                         let str = names[names.len() - 1].clone();
                         if str.2 == TypeID::Ptr {
-                            let name = get_next_rand_string();
-                            write.push_str(&*("%".to_string() + &*name + ));
+                            write.push_str(&*("call i32 @puts(ptr %".to_string() + &*str.0 + ")\n"));
                         } else {
                             println!("Error: tried to call puts on a something that is not a ptr");
                         }
@@ -442,7 +453,7 @@ fn main() {
                     //write.push_str(&*("%".to_string() + &*actual_ptr + " = load ptr, ptr %" + &*ptr.0 + "\n"));
 
                     let out_ptr = get_next_rand_string();
-                    write.push_str(&*("%".to_string() + &*out_ptr + " = getelementptr inbounds " + type_as_string(&ptr.3) + ", ptr " + &*ptr.0 + ", i32 %" + &*index.0 + "\n"));
+                    write.push_str(&*("%".to_string() + &*out_ptr + " = getelementptr inbounds " + type_as_string(&ptr.3) + ", ptr %" + &*ptr.0 + ", i32 %" + &*index.0 + "\n"));
                     names.push((out_ptr.clone(), TypeID::VariableName, TypeID::Ptr, ptr.3.clone()));
                 }
                 if tokens[j].type_id == TypeID::Malloc {
@@ -540,11 +551,11 @@ fn main() {
                             write.push_str(&*("%".to_string() + &*name + " = add i1 " + &*tokens[j].text_if_applicable + ", 0\n"));
                         }
                     } else if tokens[j].type_id == TypeID::VariableName {
-                        let name = "%".to_string() + &*get_next_rand_string();
+                        let name = get_next_rand_string();
                         if tokens[j].fake_type == TypeID::Ptr {
-                            write.push_str(&*(name.clone() + " = load ptr, ptr %" + &*tokens[j].text_if_applicable + "\n"));
+                            write.push_str(&*("%".to_string() + &*name + " = load ptr, ptr %" + &*tokens[j].text_if_applicable + "\n"));
                         } else {
-                            write.push_str(&*(name.clone() + " = load " + type_as_string(&tokens[j].fake_type) + ", " + type_as_string(&tokens[j].fake_type) + "* %" + &*tokens[j].text_if_applicable + "\n"));
+                            write.push_str(&*("%".to_string() + &*name + " = load " + type_as_string(&tokens[j].fake_type) + ", " + type_as_string(&tokens[j].fake_type) + "* %" + &*tokens[j].text_if_applicable + "\n"));
                         }
                         names.push((name.clone(), TypeID::IntegerLiteral, tokens[j].fake_type.clone(), tokens[j].second_fake_type.clone()));
                     }
