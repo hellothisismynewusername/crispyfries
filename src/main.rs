@@ -303,7 +303,7 @@ fn main() {
 
 
     let mut write: String = String::new();
-    write.push_str("declare dso_local i32 @puts(i8*)\ndeclare dso_local i32 @putchar(i8)\ndeclare i8* @malloc(i32)\n\n");
+    write.push_str("declare dso_local i32 @puts(i8*)\ndeclare dso_local i32 @putchar(i8)\ndeclare ptr @malloc(i32)\n\n");
     let mut not_labels : Vec<(String, String, String)> = Vec::new();
     for i in 0..tokens.len() {
         if i < tokens.len() - 3 && tokens[i].type_id == TypeID::FunctionDeclaration && tokens[i + 1].type_id == TypeID::FunctionName {
@@ -363,11 +363,11 @@ fn main() {
             }
             println!("len is {}", length);
             for j in (i + 1)..(i + length) {
-                if tokens[j].type_id == TypeID::Malloc && names.len() > 1 && j > 0 {
+                if tokens[j].type_id == TypeID::Malloc {
                     let name = get_next_rand_string();
                     let ptr_type = tokens[j - 1].text_if_applicable.clone();
                     let inp_size = names[names.len() - 1].clone();
-                    write.push_str(&*("%".to_string() + &*name + " = call " + &*ptr_type +  " @malloc(" + type_as_string(&inp_size.2) + " " + &*inp_size.0 + "\n"));
+                    write.push_str(&*("%".to_string() + &*name + " = call ptr @malloc(" + type_as_string(&inp_size.2) + " " + &*inp_size.0 + ")\n"));
                     names.pop();
                     names.push((name.clone(), TypeID::Ptr, inp_size.2.clone()));
                 }
