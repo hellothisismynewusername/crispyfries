@@ -32,7 +32,10 @@ enum TypeID {
     While,
     Ptr,
     PtrNotation,
-    Malloc
+    Malloc,
+    GEP,
+    AssignAtGEP,
+    Deref
 }
 
 struct Token {
@@ -41,7 +44,8 @@ struct Token {
     i32_if_applicable : i32,
     i8_if_applicable : i8,
     type_id : TypeID,
-    fake_type : TypeID
+    fake_type : TypeID,
+    second_fake_type : TypeID
 }
 
 impl Token {
@@ -52,7 +56,8 @@ impl Token {
             i32_if_applicable: 0,
             i8_if_applicable: 0,
             type_id: ty,
-            fake_type: TypeID::None
+            fake_type: TypeID::None,
+            second_fake_type: TypeID::None,
         }
     }
     fn new_with_i64(inp : i64) -> Token {
@@ -62,7 +67,8 @@ impl Token {
             i32_if_applicable: 0,
             i8_if_applicable: 0,
             type_id: TypeID::I64,
-            fake_type: TypeID::None
+            fake_type: TypeID::None,
+            second_fake_type: TypeID::None,
         }
     }
     fn new_with_i32(inp : i32) -> Token {
@@ -72,7 +78,8 @@ impl Token {
             i32_if_applicable: inp,
             i8_if_applicable: 0,
             type_id: TypeID::I32,
-            fake_type: TypeID::None
+            fake_type: TypeID::None,
+            second_fake_type: TypeID::None,
         }
     }
     fn new_with_i8(inp : i8) -> Token {
@@ -82,7 +89,8 @@ impl Token {
             i32_if_applicable: 0,
             i8_if_applicable: inp,
             type_id: TypeID::I8,
-            fake_type: TypeID::None
+            fake_type: TypeID::None,
+            second_fake_type: TypeID::None,
         }
     }
     fn new_with_type(inp : TypeID) -> Token {
@@ -92,7 +100,8 @@ impl Token {
             i32_if_applicable: 0,
             i8_if_applicable: 0,
             type_id: inp,
-            fake_type: TypeID::None
+            fake_type: TypeID::None,
+            second_fake_type: TypeID::None,
         }
     }
 }
@@ -211,6 +220,10 @@ fn main() {
                 Token::new_with_type_and_text(TypeID::PtrNotation, x)
             } else if x == "malloc" {
                 Token::new_with_type(TypeID::Malloc)
+            } else if x == "@" {
+                Token::new_with_type(TypeID::GEP)
+            } else if x == "<-" {
+                Token::new_with_type(TypeID::AssignAtGEP)
             } else {
                 Token::new_with_type_and_text(TypeID::UnknownToken, x)
             }
@@ -234,7 +247,18 @@ fn main() {
         i += 1;
     }
 
-    let mut var_names : Vec<(String, TypeID)> = Vec::new(); //name and fake type
+    i = 0;
+    while i < tokens.len() {
+        if i > 0 && tokens[i].type_id == TypeID::PtrNotation && tokens[i - 1].type_id == TypeID::Type {
+            tokens[i - 1].fake_type = tokens[i - 1].type_id.clone();
+            tokens[i - 1].type_id = TypeID::Ptr;
+            tokens.remove(i);
+            i -= 1;
+        }
+        i += 1;
+    }
+
+    let mut var_names : Vec<(String, TypeID, TypeID)> = Vec::new(); //name and fake type
 
     for i in 0..tokens.len() {
         if i > 0 && i < tokens.len() - 1 {
@@ -253,7 +277,13 @@ fn main() {
                     } else {
                         TypeID::I1
                     };
-                    var_names.push((tokens[i].text_if_applicable.clone(), tokens[i].fake_type.clone()));
+                    println!("~ {}", type_as_string(&tokens[i + 2].type_id));
+                    if tokens[i + 2].type_id == TypeID::Ptr {
+                        println!("PLEASE WORKKKKKKKKKKKKKKKKKKK JIWHAHAHHHHHH FUNCIONA CORRECTO POR FAVOR");
+                        var_names.push((tokens[i].text_if_applicable.clone(), TypeID::Ptr, tokens[i].fake_type.clone()));
+                    } else {
+                        var_names.push((tokens[i].text_if_applicable.clone(), tokens[i].fake_type.clone(), TypeID::None));
+                    }
                 }
             }
         }
@@ -280,30 +310,20 @@ fn main() {
         }
     }
 
-    while i < tokens.len() {
-        if i > 0 && tokens[i].type_id == TypeID::PtrNotation && tokens[i - 1].type_id == TypeID::Type {
-            tokens[i - 1].fake_type = tokens[i - 1].type_id.clone();
-            tokens[i - 1].type_id = TypeID::Ptr;
-            tokens.remove(i);
-            i -= 1;
-        }
-        i += 1;
-    }
-
     for i in 0..tokens.len() {
         for name in &var_names {
             if tokens[i].text_if_applicable == name.0 {
                 tokens[i].type_id = TypeID::VariableName;
                 tokens[i].fake_type = name.1.clone();
+                tokens[i].second_fake_type = name.2.clone();
             }
         }
     }
 
     print_tokens(&tokens);
 
-
     let mut write: String = String::new();
-    write.push_str("declare dso_local i32 @puts(i8*)\ndeclare dso_local i32 @putchar(i8)\ndeclare ptr @malloc(i32)\n\n");
+    write.push_str("declare dso_local i32 @puts(ptr)\ndeclare dso_local i32 @putchar(i8)\ndeclare ptr @malloc(i32)\n\n");
     let mut not_labels : Vec<(String, String, String)> = Vec::new();
     for i in 0..tokens.len() {
         if i < tokens.len() - 3 && tokens[i].type_id == TypeID::FunctionDeclaration && tokens[i + 1].type_id == TypeID::FunctionName {
@@ -320,6 +340,9 @@ fn main() {
             let mut var_type = "NotAType".to_string();
             if tokens[i + 3].type_id == TypeID::Type {
                 var_type = tokens[i + 3].text_if_applicable.clone();
+            }
+            if tokens[i + 3].type_id == TypeID::Ptr {
+                var_type = "ptr".to_string();
             }
             write.push_str(&*("%".to_string() + &*var_name + " = alloca " + &*var_type + "\n"));
         }
@@ -350,7 +373,7 @@ fn main() {
         }
 
         if tokens[i].type_id == TypeID::Do {
-            let mut names : Vec<(String, TypeID, TypeID)> = Vec::new(); //name, type, fake type
+            let mut names : Vec<(String, TypeID, TypeID, TypeID)> = Vec::new(); //name, type, fake type, second fake type
             let mut labels : Vec<(String, String, String)> = Vec::new(); //(enter1, enter2, exit)
             print!("DO MENTIONED LESS GOO. Nearby toks are ");
             print_token(&tokens[i - 1]);
@@ -363,13 +386,32 @@ fn main() {
             }
             println!("len is {}", length);
             for j in (i + 1)..(i + length) {
+                if tokens[j].type_id == TypeID::AssignAtGEP && names.len() > 1 {
+                    let assignment = names[names.len() - 2].clone();
+                    let ptr = names[names.len() - 1].clone();
+                    names.pop();
+                    names.pop();
+
+                    write.push_str(&*("store ".to_string() + type_as_string(&assignment.2) + " " + &*assignment.0 + ", ptr %" + &*ptr.0 + "\n"));
+                }
+                if tokens[j].type_id == TypeID::GEP && names.len() > 1 {
+                    let actual_ptr = get_next_rand_string();
+                    let ptr = names[names.len() - 2].clone();
+                    let index = names[names.len() - 1].clone();
+                    names.pop();
+                    names.pop();
+                    //write.push_str(&*("%".to_string() + &*actual_ptr + " = load ptr, ptr %" + &*ptr.0 + "\n"));
+
+                    let out_ptr = get_next_rand_string();
+                    write.push_str(&*("%".to_string() + &*out_ptr + " = getelementptr inbounds " + type_as_string(&ptr.3) + ", ptr " + &*ptr.0 + ", i32 " + &*index.0 + "\n"));
+                    names.push((out_ptr.clone(), TypeID::VariableName, TypeID::Ptr, ptr.3.clone()));
+                }
                 if tokens[j].type_id == TypeID::Malloc {
                     let name = get_next_rand_string();
-                    let ptr_type = tokens[j - 1].text_if_applicable.clone();
                     let inp_size = names[names.len() - 1].clone();
                     write.push_str(&*("%".to_string() + &*name + " = call ptr @malloc(" + type_as_string(&inp_size.2) + " " + &*inp_size.0 + ")\n"));
                     names.pop();
-                    names.push((name.clone(), TypeID::Ptr, inp_size.2.clone()));
+                    names.push((name.clone(), TypeID::Ptr, inp_size.2.clone(), inp_size.3.clone()));
                 }
                 if tokens[j].text_if_applicable == "endif" {
                     write.push_str(&*("br label %".to_string() + &*labels[labels.len() - 1].2 + "\n"));
@@ -380,7 +422,7 @@ fn main() {
                     write.push_str(&*("br label %".to_string() + &*labels[labels.len() - 1].2 + "\n"));
                     write.push_str(&*("\n".to_string() + &*labels[labels.len() - 1].1 + ":\n"));
                 }
-                if tokens[j].type_id == TypeID::If {                    //you may need a stack of labels in case of embedded ifs
+                if tokens[j].type_id == TypeID::If {
                     let cond = names[names.len() - 1].clone();     //TODO: you should check if latest name is a bool
                     let label1_name = get_next_rand_string();
                     let label2_name = get_next_rand_string();
@@ -416,7 +458,7 @@ fn main() {
                     names.pop();
                     names.pop();
                     names.pop();
-                    names.push(("%".to_string() + &*tmp_var_name_again, TypeID::IntegerLiteral, first.2.clone()));
+                    names.push(("%".to_string() + &*tmp_var_name_again, TypeID::IntegerLiteral, first.2.clone(), TypeID::None));
                 } else if tokens[j].text_if_applicable == "?" {
                     println!("Error: stack length not sufficient for '?'");
                 }
@@ -428,13 +470,17 @@ fn main() {
                     if tokens[j + 1].type_id == TypeID::Ret {
                         write.push_str(&*("ret ".to_string() + type_as_string(&top.2) + " " + &*top.0 + "\n"));
                     } else {
-                        write.push_str(&*("store ".to_string() + type_as_string(&top.2) + " " + &*top.0 + ", " + type_as_string(&tokens[j + 1].fake_type) + "* %" + &*tokens[j + 1].text_if_applicable + "\n"));
+                        if tokens[j + 1].fake_type == TypeID::Ptr {
+                            write.push_str(&*("store ptr %".to_string() + &*top.0 + ", ptr %" + &*tokens[j + 1].text_if_applicable + "\n"));
+                        } else {
+                            write.push_str(&*("store ".to_string() + type_as_string(&top.2) + " " + &*top.0 + ", " + type_as_string(&tokens[j + 1].fake_type) + "* %" + &*tokens[j + 1].text_if_applicable + "\n"));
+                        }
                     }
                 }
                 if tokens[j].type_id != TypeID::BinaryOperator {
                     if tokens[j].type_id == TypeID::IntegerLiteral {
                         let name = "%".to_string() + &*get_next_rand_string();
-                        names.push((name.clone(), tokens[j].type_id.clone(), tokens[j].fake_type.clone()));
+                        names.push((name.clone(), tokens[j].type_id.clone(), tokens[j].fake_type.clone(), TypeID::None));
                         println!("I pushed a {} which is a {} but actually {}", &name, type_as_string(&tokens[j].type_id), type_as_string(&tokens[j].fake_type));
                         if tokens[j].fake_type == TypeID::I32 {
                             write.push_str(&*(name.clone() + " = add i32 " + &*tokens[j].i32_if_applicable.to_string() + ", 0\n"));
@@ -450,8 +496,12 @@ fn main() {
                         }
                     } else if tokens[j].type_id == TypeID::VariableName {
                         let name = "%".to_string() + &*get_next_rand_string();
-                        write.push_str(&*(name.clone() + " = load " + type_as_string(&tokens[j].fake_type) + ", " + type_as_string(&tokens[j].fake_type) + "* %" + &*tokens[j].text_if_applicable + "\n"));
-                        names.push((name.clone(), TypeID::IntegerLiteral, tokens[j].fake_type.clone()));
+                        if tokens[j].fake_type == TypeID::Ptr {
+                            write.push_str(&*(name.clone() + " = load ptr, ptr %" + &*tokens[j].text_if_applicable + "\n"));
+                        } else {
+                            write.push_str(&*(name.clone() + " = load " + type_as_string(&tokens[j].fake_type) + ", " + type_as_string(&tokens[j].fake_type) + "* %" + &*tokens[j].text_if_applicable + "\n"));
+                        }
+                        names.push((name.clone(), TypeID::IntegerLiteral, tokens[j].fake_type.clone(), tokens[j].second_fake_type.clone()));
                     }
                 } else { //it is binOp
                     if tokens[j].text_if_applicable == "+" {
@@ -471,7 +521,7 @@ fn main() {
 
                         names.pop();
                         names.pop();
-                        names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone()));
+                        names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone(), TypeID::None));
                     }
                     if tokens[j].text_if_applicable == "-" {
                         let name = "%".to_string() + &*get_next_rand_string();
@@ -490,7 +540,7 @@ fn main() {
 
                         names.pop();
                         names.pop();
-                        names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone()));
+                        names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone(), TypeID::None));
                     }
                     if tokens[j].text_if_applicable == "*" {
                         let name = "%".to_string() + &*get_next_rand_string();
@@ -509,7 +559,7 @@ fn main() {
 
                         names.pop();
                         names.pop();
-                        names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone()));
+                        names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone(), TypeID::None));
                     }
                     if tokens[j].text_if_applicable == "/" {
                         let name = "%".to_string() + &*get_next_rand_string();
@@ -528,7 +578,7 @@ fn main() {
 
                         names.pop();
                         names.pop();
-                        names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone()));
+                        names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone(), TypeID::None));
                     }
                     if tokens[j].text_if_applicable == "rem" {
                         let name = "%".to_string() + &*get_next_rand_string();
@@ -540,7 +590,7 @@ fn main() {
 
                         names.pop();
                         names.pop();
-                        names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone()));
+                        names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone(), TypeID::None));
                     }
                     if tokens[j].text_if_applicable == "==" {
                         let name = "%".to_string() + &*get_next_rand_string();
@@ -552,7 +602,7 @@ fn main() {
 
                         names.pop();
                         names.pop();
-                        names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone()));
+                        names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone(), TypeID::None));
                     }
                     if tokens[j].text_if_applicable == "!=" {
                         let name = "%".to_string() + &*get_next_rand_string();
@@ -564,7 +614,7 @@ fn main() {
 
                         names.pop();
                         names.pop();
-                        names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone()));
+                        names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone(), TypeID::None));
                     }
                 }
             }
@@ -651,6 +701,8 @@ fn type_as_string(inp : &TypeID) -> &str {
         TypeID::Ptr => "Ptr",
         TypeID::PtrNotation => "PtrNotation",
         TypeID::Malloc => "Malloc",
+        TypeID::GEP => "@",
+        TypeID::AssignAtGEP => "<-",
         _ => "IDK"
     }
 }
@@ -664,7 +716,7 @@ fn print_string_vec(inp : &Vec<String>) {
 }
 
 fn print_token(inp : &Token) {
-    print!("(text: {}, type: {}, fake type: {}, i32: {})", inp.text_if_applicable, type_as_string(&inp.type_id), type_as_string(&inp.fake_type), inp.i32_if_applicable);
+    print!("(text: {}, type: {}, fake type: {}, second fake type: {}, i32: {})", inp.text_if_applicable, type_as_string(&inp.type_id), type_as_string(&inp.fake_type), type_as_string(&inp.second_fake_type), inp.i32_if_applicable);
 }
 
 fn print_tokens(inp : &Vec<Token>) {
