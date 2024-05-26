@@ -26,5 +26,5 @@ define i32 @main() {
 
 	call i32 @puts(ptr %p)
 
-	ret i32 0
+	
 }

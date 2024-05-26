@@ -35,9 +35,11 @@ enum TypeID {
     Malloc,
     GEP,
     AssignAtGEP,
-    Deref
+    Deref,
+    TokenThatMerelyObservesTheDirectPreviousToken
 }
 
+#[derive(Clone)]
 struct Token {
     text_if_applicable : String,
     i64_if_applicable : i64,
@@ -224,6 +226,10 @@ fn main() {
                 Token::new_with_type(TypeID::GEP)
             } else if x == "<-" {
                 Token::new_with_type(TypeID::AssignAtGEP)
+            } else if x == "&" {
+                Token::new_with_type(TypeID::Deref)
+            } else if x == "sizeof" || x == "puts" {
+                Token::new_with_type_and_text(TypeID::TokenThatMerelyObservesTheDirectPreviousToken, x)
             } else {
                 Token::new_with_type_and_text(TypeID::UnknownToken, x)
             }
@@ -279,7 +285,6 @@ fn main() {
                     };
                     println!("~ {}", type_as_string(&tokens[i + 2].type_id));
                     if tokens[i + 2].type_id == TypeID::Ptr {
-                        println!("PLEASE WORKKKKKKKKKKKKKKKKKKK JIWHAHAHHHHHH FUNCIONA CORRECTO POR FAVOR");
                         var_names.push((tokens[i].text_if_applicable.clone(), TypeID::Ptr, tokens[i].fake_type.clone()));
                     } else {
                         var_names.push((tokens[i].text_if_applicable.clone(), tokens[i].fake_type.clone(), TypeID::None));
@@ -343,6 +348,7 @@ fn main() {
             }
             if tokens[i + 3].type_id == TypeID::Ptr {
                 var_type = "ptr".to_string();
+                var_type = "ptr".to_string();
             }
             write.push_str(&*("%".to_string() + &*var_name + " = alloca " + &*var_type + "\n"));
         }
@@ -386,13 +392,46 @@ fn main() {
             }
             println!("len is {}", length);
             for j in (i + 1)..(i + length) {
+                if tokens[j].type_id == TypeID::TokenThatMerelyObservesTheDirectPreviousToken {
+                    if tokens[j].text_if_applicable == "sizeof" && j > 0 {
+                        if tokens[j - 1].type_id == TypeID::Type {
+                            let tmp_name = get_next_rand_string();
+                            let name = get_next_rand_string();
+                            let ty = tokens[j - 1].clone();
+                            write.push_str(&*("%".to_string() + &*tmp_name + " = getelementptr inbounds " + &*ty.text_if_applicable + ", " + &*ty.text_if_applicable + "* null, i32 1\n"));
+                            write.push_str(&*("%".to_string() + &*name + " = ptrtoint " + &*ty.text_if_applicable + "* %" + &*tmp_name + " to i32" + "\n"));
+                            names.push((name.clone(), TypeID::VariableName, TypeID::I32, TypeID::None));
+                        } else {
+                            println!("Error: sizeof called on a token that is not a type");
+                        }
+                    }
+                    if tokens[j].text_if_applicable == "puts" && names.len() > 0 {
+                        let str = names[names.len() - 1].clone();
+                        if str.2 == TypeID::Ptr {
+                            let name = get_next_rand_string();
+                            write.push_str(&*("%".to_string() + &*name + ));
+                        } else {
+                            println!("Error: tried to call puts on a something that is not a ptr");
+                        }
+                    }
+                }
+                if tokens[j].type_id == TypeID::Deref && names.len() > 0 {
+                    let item = names.pop().unwrap();
+                    let name = get_next_rand_string();
+                    if item.2 == TypeID::Ptr {
+                        write.push_str(&*("%".to_string() + &*name + " = load " + type_as_string(&item.3) + ", ptr %" + &*item.0 + "\n"));
+                        names.push((name.clone(), item.1.clone(), item.2.clone(), item.3.clone()));
+                    } else {
+                        println!("Error: tried to deref on something that is not a pointer");
+                    }
+                }
                 if tokens[j].type_id == TypeID::AssignAtGEP && names.len() > 1 {
                     let assignment = names[names.len() - 2].clone();
                     let ptr = names[names.len() - 1].clone();
                     names.pop();
                     names.pop();
 
-                    write.push_str(&*("store ".to_string() + type_as_string(&assignment.2) + " " + &*assignment.0 + ", ptr %" + &*ptr.0 + "\n"));
+                    write.push_str(&*("store ".to_string() + type_as_string(&assignment.2) + " %" + &*assignment.0 + ", ptr %" + &*ptr.0 + "\n"));
                 }
                 if tokens[j].type_id == TypeID::GEP && names.len() > 1 {
                     let actual_ptr = get_next_rand_string();
@@ -403,13 +442,13 @@ fn main() {
                     //write.push_str(&*("%".to_string() + &*actual_ptr + " = load ptr, ptr %" + &*ptr.0 + "\n"));
 
                     let out_ptr = get_next_rand_string();
-                    write.push_str(&*("%".to_string() + &*out_ptr + " = getelementptr inbounds " + type_as_string(&ptr.3) + ", ptr " + &*ptr.0 + ", i32 " + &*index.0 + "\n"));
+                    write.push_str(&*("%".to_string() + &*out_ptr + " = getelementptr inbounds " + type_as_string(&ptr.3) + ", ptr " + &*ptr.0 + ", i32 %" + &*index.0 + "\n"));
                     names.push((out_ptr.clone(), TypeID::VariableName, TypeID::Ptr, ptr.3.clone()));
                 }
                 if tokens[j].type_id == TypeID::Malloc {
                     let name = get_next_rand_string();
                     let inp_size = names[names.len() - 1].clone();
-                    write.push_str(&*("%".to_string() + &*name + " = call ptr @malloc(" + type_as_string(&inp_size.2) + " " + &*inp_size.0 + ")\n"));
+                    write.push_str(&*("%".to_string() + &*name + " = call ptr @malloc(" + type_as_string(&inp_size.2) + " %" + &*inp_size.0 + ")\n"));
                     names.pop();
                     names.push((name.clone(), TypeID::Ptr, inp_size.2.clone(), inp_size.3.clone()));
                 }
@@ -458,7 +497,7 @@ fn main() {
                     names.pop();
                     names.pop();
                     names.pop();
-                    names.push(("%".to_string() + &*tmp_var_name_again, TypeID::IntegerLiteral, first.2.clone(), TypeID::None));
+                    names.push((tmp_var_name_again.clone(), TypeID::IntegerLiteral, first.2.clone(), TypeID::None));
                 } else if tokens[j].text_if_applicable == "?" {
                     println!("Error: stack length not sufficient for '?'");
                 }
@@ -468,31 +507,37 @@ fn main() {
                     }
                     let top = names[names.len() - 1].clone();
                     if tokens[j + 1].type_id == TypeID::Ret {
-                        write.push_str(&*("ret ".to_string() + type_as_string(&top.2) + " " + &*top.0 + "\n"));
+                        println!("moments before REEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEYT");
+                        if top.2 == TypeID::Ptr {
+                            write.push_str(&*("ret ".to_string() + type_as_string(&top.3) + " %" + &*top.0 + "\n"));
+                            println!("REEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEYT");
+                        } else {
+                            write.push_str(&*("ret ".to_string() + type_as_string(&top.2) + " %" + &*top.0 + "\n"));
+                        }
                     } else {
                         if tokens[j + 1].fake_type == TypeID::Ptr {
                             write.push_str(&*("store ptr %".to_string() + &*top.0 + ", ptr %" + &*tokens[j + 1].text_if_applicable + "\n"));
                         } else {
-                            write.push_str(&*("store ".to_string() + type_as_string(&top.2) + " " + &*top.0 + ", " + type_as_string(&tokens[j + 1].fake_type) + "* %" + &*tokens[j + 1].text_if_applicable + "\n"));
+                            write.push_str(&*("store ".to_string() + type_as_string(&top.2) + " %" + &*top.0 + ", " + type_as_string(&tokens[j + 1].fake_type) + "* %" + &*tokens[j + 1].text_if_applicable + "\n"));
                         }
                     }
                 }
                 if tokens[j].type_id != TypeID::BinaryOperator {
                     if tokens[j].type_id == TypeID::IntegerLiteral {
-                        let name = "%".to_string() + &*get_next_rand_string();
+                        let name = get_next_rand_string();
                         names.push((name.clone(), tokens[j].type_id.clone(), tokens[j].fake_type.clone(), TypeID::None));
                         println!("I pushed a {} which is a {} but actually {}", &name, type_as_string(&tokens[j].type_id), type_as_string(&tokens[j].fake_type));
                         if tokens[j].fake_type == TypeID::I32 {
-                            write.push_str(&*(name.clone() + " = add i32 " + &*tokens[j].i32_if_applicable.to_string() + ", 0\n"));
+                            write.push_str(&*("%".to_string() + &*name + " = add i32 " + &*tokens[j].i32_if_applicable.to_string() + ", 0\n"));
                         }
                         if tokens[j].fake_type == TypeID::I64 {
-                            write.push_str(&*(name.clone() + " = add i64 " + &*tokens[j].i64_if_applicable.to_string() + ", 0\n"));
+                            write.push_str(&*("%".to_string() + &*name + " = add i64 " + &*tokens[j].i64_if_applicable.to_string() + ", 0\n"));
                         }
                         if tokens[j].fake_type == TypeID::I8 {
-                            write.push_str(&*(name.clone() + " = add i8 " + &*tokens[j].i8_if_applicable.to_string() + ", 0\n"));
+                            write.push_str(&*("%".to_string() + &*name + " = add i8 " + &*tokens[j].i8_if_applicable.to_string() + ", 0\n"));
                         }
                         if tokens[j].fake_type == TypeID::I1 {
-                            write.push_str(&*(name.clone() + " = add i1 " + &*tokens[j].text_if_applicable + ", 0\n"));
+                            write.push_str(&*("%".to_string() + &*name + " = add i1 " + &*tokens[j].text_if_applicable + ", 0\n"));
                         }
                     } else if tokens[j].type_id == TypeID::VariableName {
                         let name = "%".to_string() + &*get_next_rand_string();
@@ -505,18 +550,14 @@ fn main() {
                     }
                 } else { //it is binOp
                     if tokens[j].text_if_applicable == "+" {
-                        let name = "%".to_string() + &*get_next_rand_string();
+                        let name = get_next_rand_string();
                         println!("names len is {}", names.len());
                         let value_1 = names[names.len() - 2].clone();
                         let value_2 = names[names.len() - 1].clone();
 
-                        write.push_str(&*(name.as_str().to_string() + " = add "));
-                        if value_1.1 == TypeID::IntegerLiteral {
-                             write.push_str(&*(type_as_string(&value_1.2).to_string() + " " + &*(value_1.0)));
-                        }
-                        if value_2.1 == TypeID::IntegerLiteral {
-                            write.push_str(&*(", ".to_string() + &*(value_2.0)));
-                        }
+                        write.push_str(&*("%".to_string() + &*name + " = add "));
+                        write.push_str(&*(type_as_string(&value_1.2).to_string() + " %" + &*(value_1.0)));
+                        write.push_str(&*(", %".to_string() + &*(value_2.0)));
                         write.push_str("\n");
 
                         names.pop();
@@ -524,18 +565,14 @@ fn main() {
                         names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone(), TypeID::None));
                     }
                     if tokens[j].text_if_applicable == "-" {
-                        let name = "%".to_string() + &*get_next_rand_string();
+                        let name = get_next_rand_string();
                         println!("names len is {}", names.len());
                         let value_1 = names[names.len() - 2].clone();
                         let value_2 = names[names.len() - 1].clone();
 
-                        write.push_str(&*(name.as_str().to_string() + " = sub "));
-                        if value_1.1 == TypeID::IntegerLiteral {
-                            write.push_str(&*(type_as_string(&value_1.2).to_string() + " " + &*(value_1.0)));
-                        }
-                        if value_2.1 == TypeID::IntegerLiteral {
-                            write.push_str(&*(", ".to_string() + &*(value_2.0)));
-                        }
+                        write.push_str(&*("%".to_string() + &*name + " = sub "));
+                        write.push_str(&*(type_as_string(&value_1.2).to_string() + " %" + &*(value_1.0)));
+                        write.push_str(&*(", %".to_string() + &*(value_2.0)));
                         write.push_str("\n");
 
                         names.pop();
@@ -543,18 +580,14 @@ fn main() {
                         names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone(), TypeID::None));
                     }
                     if tokens[j].text_if_applicable == "*" {
-                        let name = "%".to_string() + &*get_next_rand_string();
+                        let name = get_next_rand_string();
                         println!("names len is {}", names.len());
                         let value_1 = names[names.len() - 2].clone();
                         let value_2 = names[names.len() - 1].clone();
 
-                        write.push_str(&*(name.as_str().to_string() + " = mul "));
-                        if value_1.1 == TypeID::IntegerLiteral {
-                            write.push_str(&*(type_as_string(&value_1.2).to_string() + " " + &*(value_1.0)));
-                        }
-                        if value_2.1 == TypeID::IntegerLiteral {
-                            write.push_str(&*(", ".to_string() + &*(value_2.0)));
-                        }
+                        write.push_str(&*("%".to_string() + &*name + " = mul "));
+                        write.push_str(&*(type_as_string(&value_1.2).to_string() + " %" + &*(value_1.0)));
+                        write.push_str(&*(", %".to_string() + &*(value_2.0)));
                         write.push_str("\n");
 
                         names.pop();
@@ -562,18 +595,14 @@ fn main() {
                         names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone(), TypeID::None));
                     }
                     if tokens[j].text_if_applicable == "/" {
-                        let name = "%".to_string() + &*get_next_rand_string();
+                        let name = get_next_rand_string();
                         println!("names len is {}", names.len());
                         let value_1 = names[names.len() - 2].clone();
                         let value_2 = names[names.len() - 1].clone();
 
-                        write.push_str(&*(name.as_str().to_string() + " = sdiv "));
-                        if value_1.1 == TypeID::IntegerLiteral {
-                            write.push_str(&*(type_as_string(&value_1.2).to_string() + " " + &*(value_1.0)));
-                        }
-                        if value_2.1 == TypeID::IntegerLiteral {
-                            write.push_str(&*(", ".to_string() + &*(value_2.0)));
-                        }
+                        write.push_str(&*("%".to_string() + &*name.to_string() + " = sdiv "));
+                        write.push_str(&*(type_as_string(&value_1.2).to_string() + " %" + &*(value_1.0)));
+                        write.push_str(&*(", %".to_string() + &*(value_2.0)));
                         write.push_str("\n");
 
                         names.pop();
@@ -581,36 +610,36 @@ fn main() {
                         names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone(), TypeID::None));
                     }
                     if tokens[j].text_if_applicable == "rem" {
-                        let name = "%".to_string() + &*get_next_rand_string();
+                        let name = get_next_rand_string();
                         println!("names len is {}", names.len());
                         let value_1 = names[names.len() - 2].clone();
                         let value_2 = names[names.len() - 1].clone();
 
-                        write.push_str(&*(name.as_str().to_string() + " = srem " + type_as_string(&value_1.2) + " " + &*(value_1.0) + ", " + &*(value_2.0) + "\n"));
+                        write.push_str(&*("%".to_string() + &*name + " = srem " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
 
                         names.pop();
                         names.pop();
                         names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone(), TypeID::None));
                     }
                     if tokens[j].text_if_applicable == "==" {
-                        let name = "%".to_string() + &*get_next_rand_string();
+                        let name = get_next_rand_string();
                         println!("== MENTIONED LESS GOOO is {}", names.len());
                         let value_1 = names[names.len() - 2].clone();
                         let value_2 = names[names.len() - 1].clone();
 
-                        write.push_str(&*(name.as_str().to_string() + " = icmp eq " + type_as_string(&value_1.2) + " " + &*(value_1.0) + ", " + &*(value_2.0) + "\n"));
+                        write.push_str(&*("%".to_string() + &*name + " = icmp eq " + type_as_string(&value_1.2) + " " + &*(value_1.0) + ", " + &*(value_2.0) + "\n"));
 
                         names.pop();
                         names.pop();
                         names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone(), TypeID::None));
                     }
                     if tokens[j].text_if_applicable == "!=" {
-                        let name = "%".to_string() + &*get_next_rand_string();
+                        let name = get_next_rand_string();
                         println!("!= MENTIONED LESS GOOO is {}", names.len());
                         let value_1 = names[names.len() - 2].clone();
                         let value_2 = names[names.len() - 1].clone();
 
-                        write.push_str(&*(name.as_str().to_string() + " = icmp ne " + type_as_string(&value_1.2) + " " + &*(value_1.0) + ", " + &*(value_2.0) + "\n"));
+                        write.push_str(&*("%".to_string() + &*name + " = icmp ne " + type_as_string(&value_1.2) + " " + &*(value_1.0) + ", " + &*(value_2.0) + "\n"));
 
                         names.pop();
                         names.pop();
