@@ -1,0 +1,13 @@
+add these to epic programming guide:
+	while
+	malloc
+	pointers
+	puts
+	sizeof
+	char literals
+	@ (GEP)
+	& (deref)
+	<- (assign value to location specified by pointer)
+
+get rid of the ?
+

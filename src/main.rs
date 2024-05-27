@@ -130,7 +130,8 @@ fn main() {
 
     let mut buf : Vec<String> = String::from_utf8(file_buf).expect("Error").split_whitespace().into_iter().map(|x| x.to_string()).collect();
 
-    for i in 0..buf.len() {
+    let mut i = 0;
+    while i < buf.len() {
         if buf[i] == "true" {
             buf.remove(i);
             buf.insert(i, "i1".to_string());
@@ -145,6 +146,13 @@ fn main() {
             buf.remove(i);
             buf.insert(i, "i1".to_string());
         }
+        if i < buf.len() - 1 && buf[i] == "'" && buf[i + 1] == "'" {
+            println!("JJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJ");
+            buf.remove(i);
+            buf.remove(i);
+            buf.insert(i, "' '".to_string());
+            i -= 1;
+        }
         if buf[i].len() == 3 && buf[i].chars().nth(0).unwrap() == '\'' && buf[i].chars().nth(2).unwrap() == '\'' {
             let c : char = buf[i].chars().nth(1).unwrap();
             if c.is_ascii() {
@@ -157,20 +165,19 @@ fn main() {
                 exit(1);
             }
         }
+        i += 1;
     }
 
     let mut i : usize = 0;
     while i < buf.len() {
         for c in 0..buf[i].len() {
             if buf[i].chars().nth(c).unwrap() == ';' {
-
                 buf.insert(i, buf[i].chars().take_while(|x| *x != ';').collect());
                 buf.remove(i + 1);
                 buf.insert(i + 1, ";".to_string());
                 i += 1;
             }
             if buf[i].chars().nth(c).is_some() && buf[i].chars().nth(c).unwrap() == '^' {
-
                 buf.insert(i, buf[i].chars().take_while(|x| *x != '^').collect());
                 buf.remove(i + 1);
                 buf.insert(i + 1, "^".to_string());
@@ -281,7 +288,7 @@ fn main() {
     for i in 0..tokens.len() {
         if i > 0 && i < tokens.len() - 1 {
             if tokens[i].type_id == TypeID::UnknownToken {
-                if tokens[i - 1].type_id == TypeID::FunctionDeclaration && tokens[i + 1].type_id == TypeID::Sentinel {
+                if tokens[i - 1].type_id == TypeID::FunctionDeclaration {
                     tokens[i].type_id = TypeID::FunctionName;
                 }
                 if tokens[i - 1].type_id == TypeID::VariableDeclaration && tokens[i + 1].type_id == TypeID::Sentinel {
@@ -345,11 +352,41 @@ fn main() {
     for i in 0..tokens.len() {
         if i < tokens.len() - 3 && tokens[i].type_id == TypeID::FunctionDeclaration && tokens[i + 1].type_id == TypeID::FunctionName {
             let fn_name = tokens[i + 1].text_if_applicable.clone();
+            let mut params : Vec<String> = Vec::new();
+            let mut params_str = String::from("");
+            let orig = i + 2;
+            let mut cntr = 0;
             let mut fn_type = "NotAType".to_string();
-            if tokens[i + 3].type_id == TypeID::Type {
-                fn_type = tokens[i + 3].text_if_applicable.clone();
+            if tokens[i + 2].type_id != TypeID::Sentinel {
+                while orig + cntr < tokens.len() && tokens[orig + cntr].type_id != TypeID::Sentinel {
+                    params.push(tokens[orig + cntr].text_if_applicable.clone());
+                    cntr += 1;
+                }
+                for i in 0..params.len() {
+                    if i < params.len() - 1 && i % 2 == 0 {
+                        let tmp = params[i + 1].clone();
+                        params[i + 1] = "%".to_string() + &*params[i];
+                        params[i] = tmp;
+                    }
+                }
+                println!("WHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA {}", tokens[i].text_if_applicable);
+                print_string_vec(&params);
+                for (i, p) in params.iter().enumerate() {
+                    if i % 2 == 0 && i > 0 {
+                        params_str.push_str(&*(", ".to_string() + &*p));
+                    } else {
+                        params_str.push_str(&*(" ".to_string() + &*p));
+                    }
+                }
+                if tokens[i + cntr + 1].type_id == TypeID::Type {
+                    fn_type = tokens[i + cntr + 1].text_if_applicable.clone();
+                }
+            } else {
+                if tokens[i + 3].type_id == TypeID::Type {
+                    fn_type = tokens[i + 3].text_if_applicable.clone();
+                }
             }
-            write.push_str(&*("define ".to_string() + &*fn_type + " @" + &*fn_name + "() {\n"));
+            write.push_str(&*("define ".to_string() + &*fn_type + " @" + &*fn_name + "(" + &*params_str + ") {\n"));
         }
 
         if i < tokens.len() - 3 && tokens[i].type_id == TypeID::VariableDeclaration && tokens[i + 1].type_id == TypeID::VariableName {
@@ -431,7 +468,7 @@ fn main() {
                     let name = get_next_rand_string();
                     if item.2 == TypeID::Ptr {
                         write.push_str(&*("%".to_string() + &*name + " = load " + type_as_string(&item.3) + ", ptr %" + &*item.0 + "\n"));
-                        names.push((name.clone(), item.1.clone(), item.2.clone(), item.3.clone()));
+                        names.push((name.clone(), item.1.clone(), item.3.clone(), TypeID::None));
                     } else {
                         println!("Error: tried to deref on something that is not a pointer");
                     }
@@ -477,7 +514,7 @@ fn main() {
                     let label1_name = get_next_rand_string();
                     let label2_name = get_next_rand_string();
                     let exit_name = get_next_rand_string();
-                    write.push_str(&*("br i1 ".to_string() + &*cond.0 + ", label %" + &*label1_name + ", label %" + &*label2_name + "\n\n"));
+                    write.push_str(&*("br i1 %".to_string() + &*cond.0 + ", label %" + &*label1_name + ", label %" + &*label2_name + "\n\n"));
                     labels.push((label1_name.clone(), label2_name.clone(), exit_name.clone()));
                     write.push_str(&*(label1_name.clone() + ":\n"));
                 }
@@ -638,7 +675,7 @@ fn main() {
                         let value_1 = names[names.len() - 2].clone();
                         let value_2 = names[names.len() - 1].clone();
 
-                        write.push_str(&*("%".to_string() + &*name + " = icmp eq " + type_as_string(&value_1.2) + " " + &*(value_1.0) + ", " + &*(value_2.0) + "\n"));
+                        write.push_str(&*("%".to_string() + &*name + " = icmp eq " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
 
                         names.pop();
                         names.pop();
@@ -650,7 +687,7 @@ fn main() {
                         let value_1 = names[names.len() - 2].clone();
                         let value_2 = names[names.len() - 1].clone();
 
-                        write.push_str(&*("%".to_string() + &*name + " = icmp ne " + type_as_string(&value_1.2) + " " + &*(value_1.0) + ", " + &*(value_2.0) + "\n"));
+                        write.push_str(&*("%".to_string() + &*name + " = icmp ne " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
 
                         names.pop();
                         names.pop();
@@ -664,6 +701,11 @@ fn main() {
             }
             println!();
         }
+
+        // println!("progress: ");
+        // println!("{}", write);
+        // println!();
+
     }
     println!("{}", write);
 

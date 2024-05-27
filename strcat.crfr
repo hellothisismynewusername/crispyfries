@@ -1,0 +1,102 @@
+fn main : i32 {
+	let str1 : i8^
+	let str2 : i8^
+
+    /* initializing strings */
+	do
+		3 i32 malloc -> str1
+		5 i32 malloc -> str2
+
+		'h' str1 0 i32 @ <-
+		'i' str1 1 i32 @ <-
+		0 i8 str1 2 i32 @ <-
+
+		' ' str2 0 i32 @ <-
+		'y' str2 1 i32 @ <-
+		'o' str2 2 i32 @ <-
+		'u' str2 3 i32 @ <-
+		0 i8 str2 4 i32 @ <-
+
+		str1 puts str2 puts
+	;
+
+	let end_of_str1 : i32
+	let end_of_str2 : i32
+
+
+	/* finding end of str1 */
+	let not_reached : bool
+	let cntr : i32
+	do
+		true -> not_reached
+		0 i32 -> cntr
+	;
+	not_reached while
+		do
+			str1 cntr @ & 0 i8 == if
+				false -> not_reached
+			else
+				cntr 1 i32 + -> cntr
+			endif
+		;
+	endwhile
+	do cntr -> end_of_str1;
+
+
+	/* finding end of str2 */
+	do
+		true -> not_reached
+		0 i32 -> cntr
+	;
+	not_reached while
+		do
+			str2 cntr @ & 0 i8 == if
+				false -> not_reached
+			else
+				cntr 1 i32 + -> cntr
+			endif
+		;
+	endwhile
+	do cntr -> end_of_str2;
+
+    /* putting str1 and str2 into str3 */
+	let str3 : i8^
+	let cntr1 : i32
+	let cntr2 : i32
+	let not_yet_reached_str1_end : bool
+	let not_yet_reached_str2_end : bool
+	do
+		0 i32 -> cntr1 -> cntr2
+		true -> not_yet_reached_str1_end -> not_yet_reached_str2_end
+
+		end_of_str1
+		end_of_str2 1 i32 +
+		+
+		malloc -> str3
+	;
+	not_yet_reached_str1_end while
+		do
+			str1 cntr1 @ & 0 i8 == if
+				false -> not_yet_reached_str1_end
+			else
+				str1 cntr1 @ & str3 cntr1 @ <-
+				cntr1 1 i32 + -> cntr1
+			endif
+		;
+	endwhile
+	not_yet_reached_str2_end while
+		do
+			str2 cntr2 @ & 0 i8 == if
+				false -> not_yet_reached_str2_end
+			else
+			endif
+			str2 cntr2 @ & str3 cntr2 end_of_str1 + @ <-
+            cntr2 1 i32 + -> cntr2
+		;
+	endwhile
+
+	do
+	    str3 -> str1 puts       /* reassign str1 to the new location of the concatenated strings and print str1 */
+	    end_of_str1 end_of_str2 1 i32 + + -> ret        /* return the length of the new string */
+	;
+}
