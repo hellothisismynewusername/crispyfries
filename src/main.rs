@@ -36,7 +36,8 @@ enum TypeID {
     GEP,
     AssignAtGEP,
     Deref,
-    TokenThatMerelyObservesTheDirectPreviousToken
+    TokenThatMerelyObservesTheDirectPreviousToken,
+    Free
 }
 
 #[derive(Clone)]
@@ -195,62 +196,27 @@ fn main() {
         }
 
         if put {
-            if x == ";" {
-                Token::new_with_type_and_text(TypeID::Sentinel, x)
-            } else if x == "do" {
-                Token::new_with_type(TypeID::Do)
-            } else if x == "fn" {
-                Token::new_with_type(TypeID::FunctionDeclaration)
-            } else if x == "let" {
-                Token::new_with_type(TypeID::VariableDeclaration)
-            } else if x == "+" || x == "-" || x == "*" || x == "/" || x == "rem" || x == "==" || x == "!=" {
-                Token::new_with_type_and_text(TypeID::BinaryOperator, x)
-            } else if x == "->" {
-                Token::new_with_type_and_text(TypeID::Sentinel, x)
-            } else if x == ":" {
-                Token::new_with_type_and_text(TypeID::Sentinel, x)
-            } else if x == "?" {//only use ? with constants as the output options, but also this is pretty useless besides that b/c it will process both options BEFORE checking the condition
-                Token::new_with_type_and_text(TypeID::Operator, x)
-            } else if x == "if" {
-                Token::new_with_type_and_text(TypeID::If, x)
-            } else if x == "else" {
-                Token::new_with_type_and_text(TypeID::Sentinel, x)
-            } else if x == "endif" {
-                Token::new_with_type_and_text(TypeID::Sentinel, x)
-            } else if x == "while" {
-                Token::new_with_type_and_text(TypeID::While, x)
-            } else if x == "endwhile" {
-                Token::new_with_type_and_text(TypeID::Sentinel, x)
-            } else if x == "{" {
-                Token::new_with_type_and_text(TypeID::Sentinel, x)
-            } else if x == "}" {
-                Token::new_with_type_and_text(TypeID::Sentinel, x)
-            } else if x == "ret" {
-                Token::new_with_type(TypeID::Ret)
-            } else if x.parse::<i64>().is_ok() {
+            if x.parse::<i64>().is_ok() {
                 Token::new_with_type_and_text(TypeID::IntegerLiteral, x)
-            } else if x == "i32" {
-                Token::new_with_type_and_text(TypeID::Type, x)
-            } else if x == "i64" {
-                Token::new_with_type_and_text(TypeID::Type, x)
-            } else if x == "i8" {
-                Token::new_with_type_and_text(TypeID::Type, x)
-            } else if x == "i1" {
-                Token::new_with_type_and_text(TypeID::Type, x)
-            } else if x == "^" {
-                Token::new_with_type_and_text(TypeID::PtrNotation, x)
-            } else if x == "malloc" {
-                Token::new_with_type(TypeID::Malloc)
-            } else if x == "@" {
-                Token::new_with_type(TypeID::GEP)
-            } else if x == "<-" {
-                Token::new_with_type(TypeID::AssignAtGEP)
-            } else if x == "&" {
-                Token::new_with_type(TypeID::Deref)
-            } else if x == "sizeof" || x == "puts" {
-                Token::new_with_type_and_text(TypeID::TokenThatMerelyObservesTheDirectPreviousToken, x)
             } else {
-                Token::new_with_type_and_text(TypeID::UnknownToken, x)
+                match &*x {
+                    "fn" => Token::new_with_type(TypeID::FunctionDeclaration),
+                    "do" => Token::new_with_type(TypeID::Do),
+                    "let" => Token::new_with_type(TypeID::VariableDeclaration),
+                    "+" | "-" | "*" | "/" | "rem" | "==" | "!=" => Token::new_with_type_and_text(TypeID::BinaryOperator, x.clone()),
+                    "->" | ":" | ";" | "else" | "endif" | "endwhile" | "{" | "}" => Token::new_with_type_and_text(TypeID::Sentinel, x.clone()),
+                    "if" => Token::new_with_type_and_text(TypeID::If, x.clone()),
+                    "while" => Token::new_with_type_and_text(TypeID::While, x.clone()),
+                    "ret" => Token::new_with_type(TypeID::Ret),
+                    "i32" | "i64" | "i8" | "i1" => Token::new_with_type_and_text(TypeID::Type, x.clone()),
+                    "^" => Token::new_with_type_and_text(TypeID::PtrNotation, x.clone()),
+                    "malloc" => Token::new_with_type(TypeID::Malloc),
+                    "@" => Token::new_with_type(TypeID::GEP),
+                    "<-" => Token::new_with_type(TypeID::AssignAtGEP),
+                    "&" => Token::new_with_type(TypeID::Deref),
+                    "sizeof" | "puts" => Token::new_with_type_and_text(TypeID::TokenThatMerelyObservesTheDirectPreviousToken, x.clone()),
+                    _ => Token::new_with_type_and_text(TypeID::UnknownToken, x.clone())
+                }
             }
         } else {
             if x == "*/" {
