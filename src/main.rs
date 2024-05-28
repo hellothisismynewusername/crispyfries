@@ -36,8 +36,7 @@ enum TypeID {
     GEP,
     AssignAtGEP,
     Deref,
-    TokenThatMerelyObservesTheDirectPreviousToken,
-    Free
+    Simple,
 }
 
 #[derive(Clone)]
@@ -190,7 +189,7 @@ fn main() {
     print_string_vec(&buf);
 
     let mut put = true;
-    let mut tokens : Vec<Token> = buf.into_iter().map(|x| {
+    let mut tokens : Vec<Token> = buf.into_iter().map( |x| {
         if x == "/*" {
             put = false;
         }
@@ -211,10 +210,11 @@ fn main() {
                     "i32" | "i64" | "i8" | "i1" => Token::new_with_type_and_text(TypeID::Type, x.clone()),
                     "^" => Token::new_with_type_and_text(TypeID::PtrNotation, x.clone()),
                     "malloc" => Token::new_with_type(TypeID::Malloc),
+                    "free" => Token::new_with_type_and_text(TypeID::Simple, x.clone()),
                     "@" => Token::new_with_type(TypeID::GEP),
                     "<-" => Token::new_with_type(TypeID::AssignAtGEP),
                     "&" => Token::new_with_type(TypeID::Deref),
-                    "sizeof" | "puts" => Token::new_with_type_and_text(TypeID::TokenThatMerelyObservesTheDirectPreviousToken, x.clone()),
+                    "sizeof" | "puts" => Token::new_with_type_and_text(TypeID::Simple, x.clone()),
                     _ => Token::new_with_type_and_text(TypeID::UnknownToken, x.clone())
                 }
             }
@@ -313,7 +313,7 @@ fn main() {
     print_tokens(&tokens);
 
     let mut write: String = String::new();
-    write.push_str("declare dso_local i32 @puts(ptr)\ndeclare dso_local i32 @putchar(i8)\ndeclare ptr @malloc(i32)\n\n");
+    write.push_str("declare dso_local i32 @puts(ptr)\ndeclare dso_local i32 @putchar(i8)\ndeclare ptr @malloc(i32)\ndeclare void @free(ptr)\n\n");
     let mut not_labels : Vec<(String, String, String)> = Vec::new();
     for i in 0..tokens.len() {
         if i < tokens.len() - 3 && tokens[i].type_id == TypeID::FunctionDeclaration && tokens[i + 1].type_id == TypeID::FunctionName {
@@ -407,7 +407,7 @@ fn main() {
             }
             println!("len is {}", length);
             for j in (i + 1)..(i + length) {
-                if tokens[j].type_id == TypeID::TokenThatMerelyObservesTheDirectPreviousToken {
+                if tokens[j].type_id == TypeID::Simple {
                     if tokens[j].text_if_applicable == "sizeof" && j > 0 {
                         if tokens[j - 1].type_id == TypeID::Type {
                             let tmp_name = get_next_rand_string();
@@ -426,6 +426,15 @@ fn main() {
                             write.push_str(&*("call i32 @puts(ptr %".to_string() + &*str.0 + ")\n"));
                         } else {
                             println!("Error: tried to call puts on a something that is not a ptr");
+                        }
+                    }
+                    if tokens[j].text_if_applicable == "free" && names.len() > 0 {
+                        let ptr = names[names.len() - 1].clone();
+                        if ptr.2 == TypeID::Ptr {
+                            write.push_str(&*("call void @free(ptr %".to_string() + &*ptr.0 + ")\n"));
+                            names.pop();
+                        } else {
+                            println!("Error: tried to call free on a something that is not a ptr");
                         }
                     }
                 }

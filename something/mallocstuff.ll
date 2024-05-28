@@ -1,8 +1,21 @@
 declare dso_local i32 @puts(ptr)
 declare dso_local i32 @putchar(i8)
 declare ptr @malloc(i32)
+declare void @free(ptr)
 
 define i32 @main() {
+
+	%p = call ptr @malloc(i32 3)
+	%pos1 = getelementptr inbounds i8, ptr %p, i32 0
+	store i8 65, ptr %pos1
+	%pos2 = getelementptr inbounds i8, ptr %p, i32 1
+	store i8 66, ptr %pos2
+	%pos3 = getelementptr inbounds i8, ptr %p, i32 2
+	store i8 0, ptr %pos3
+
+	call i32 @puts(ptr %p)
+	call void @free(ptr %p)
+	call i32 @puts(ptr %p)
 
 	%blah = alloca ptr
 	%smthn = call ptr @malloc(i32 2)
@@ -16,15 +29,11 @@ define i32 @main() {
 	%c = load ptr, ptr %blah
 	call i32 @puts(ptr %c)
 
-	%p = call ptr @malloc(i32 3)
-	%pos1 = getelementptr inbounds i8, ptr %p, i32 0
-	store i8 65, ptr %pos1
-	%pos2 = getelementptr inbounds i8, ptr %p, i32 1
-	store i8 66, ptr %pos2
-	%pos3 = getelementptr inbounds i8, ptr %p, i32 2
-	store i8 0, ptr %pos3
-
-	call i32 @puts(ptr %p)
 
 	
+
+	
+
+	ret i32 0
+
 }

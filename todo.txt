@@ -9,5 +9,6 @@ add these to epic programming guide:
 	& (deref)
 	<- (assign value to location specified by pointer)
 
-get rid of the ?
+check if there's some operators that don't consume / should consume items.
 
+puts does not consume the last item. this is a feature, mention it.
