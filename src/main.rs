@@ -210,7 +210,7 @@ fn main() {
                     "fn" => Token::new_with_type(TypeID::FunctionDeclaration),
                     "do" => Token::new_with_type(TypeID::Do),
                     "let" => Token::new_with_type(TypeID::VariableDeclaration),
-                    "+" | "-" | "*" | "/" | "rem" | "==" | "!=" => Token::new_with_type_and_text(TypeID::BinaryOperator, x.clone()),
+                    "+" | "-" | "*" | "/" | "rem" | "==" | "!=" | "&&" | "||" => Token::new_with_type_and_text(TypeID::BinaryOperator, x.clone()),
                     "->" | ":" | ";" | "else" | "endif" | "endwhile" | "{" | "}" => Token::new_with_type_and_text(TypeID::Sentinel, x.clone()),
                     "if" => Token::new_with_type_and_text(TypeID::If, x.clone()),
                     "while" => Token::new_with_type_and_text(TypeID::While, x.clone()),
@@ -222,7 +222,7 @@ fn main() {
                     "@" => Token::new_with_type(TypeID::GEP),
                     "<-" => Token::new_with_type(TypeID::AssignAtGEP),
                     "&" => Token::new_with_type(TypeID::Deref),
-                    "sizeof" | "puts" => Token::new_with_type_and_text(TypeID::Simple, x.clone()),
+                    "sizeof" | "puts" | "!" => Token::new_with_type_and_text(TypeID::Simple, x.clone()),
                     _ => Token::new_with_type_and_text(TypeID::UnknownToken, x.clone())
                 }
             }
@@ -522,6 +522,19 @@ fn main() {
                             names.pop();
                         } else {
                             println!("Error: tried to call free on a something that is not a ptr");
+                            exit(1);
+                        }
+                    }
+                    if tokens[j].text_if_applicable == "!" && names.len() > 0 {
+                        let b = names[names.len() - 1].clone();
+                        if b.2 == TypeID::I1 {
+                            let name = get_next_rand_string();
+                            write.push_str(&*("%".to_string() + &*name + " = icmp eq " + type_as_string(&b.2) + " %" + &*(b.0) + ", 0\n"));
+                            names.pop();
+                            names.push((name.clone(), TypeID::IntegerLiteral, b.2.clone(), TypeID::None));
+
+                        } else {
+                            println!("Error: called ! on something that is not of type bool");
                             exit(1);
                         }
                     }
