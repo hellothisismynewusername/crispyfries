@@ -352,6 +352,15 @@ fn main() {
                 println!("{}", msg.unwrap());
                 exit(1);
             }
+            let msg2 = match &*tokens[i].text_if_applicable {
+                "}" => Some("Error: Found `do` without matching `;`"),
+                _ => None
+            };
+            if msg2.is_some() {
+                println!("RAHHHHHHHHHH");
+                println!("{}", msg2.unwrap());
+                exit(1);
+            }
         }
         if !doing {
             let msg = match &*tokens[i].text_if_applicable {
@@ -480,6 +489,9 @@ fn main() {
             }
             println!("len is {}", length);
             for j in (i + 1)..(i + length) {
+                if j > 0 && tokens[j].type_id == TypeID::FunctionName && tokens[j - 1].type_id != TypeID::FunctionDeclaration {
+                    
+                }
                 if tokens[j].type_id == TypeID::Simple {
                     if tokens[j].text_if_applicable == "sizeof" && j > 0 {
                         if tokens[j - 1].type_id == TypeID::Type {
