@@ -210,7 +210,7 @@ fn main() {
                     "fn" => Token::new_with_type(TypeID::FunctionDeclaration),
                     "do" => Token::new_with_type(TypeID::Do),
                     "let" => Token::new_with_type(TypeID::VariableDeclaration),
-                    "+" | "-" | "*" | "/" | "rem" | "==" | "!=" | "&&" | "||" => Token::new_with_type_and_text(TypeID::BinaryOperator, x.clone()),
+                    "+" | "-" | "*" | "/" | "rem" | "==" | "!=" | "&" | "|" => Token::new_with_type_and_text(TypeID::BinaryOperator, x.clone()),
                     "->" | ":" | ";" | "else" | "endif" | "endwhile" | "{" | "}" => Token::new_with_type_and_text(TypeID::Sentinel, x.clone()),
                     "if" => Token::new_with_type_and_text(TypeID::If, x.clone()),
                     "while" => Token::new_with_type_and_text(TypeID::While, x.clone()),
@@ -221,7 +221,7 @@ fn main() {
                     "free" => Token::new_with_type_and_text(TypeID::Simple, x.clone()),
                     "@" => Token::new_with_type(TypeID::GEP),
                     "<-" => Token::new_with_type(TypeID::AssignAtGEP),
-                    "&" => Token::new_with_type(TypeID::Deref),
+                    "#" => Token::new_with_type(TypeID::Deref),
                     "sizeof" | "puts" | "!" => Token::new_with_type_and_text(TypeID::Simple, x.clone()),
                     _ => Token::new_with_type_and_text(TypeID::UnknownToken, x.clone())
                 }
@@ -734,6 +734,22 @@ fn main() {
                         let value_2 = names[names.len() - 1].clone();
 
                         write.push_str(&*("%".to_string() + &*name + " = icmp ne " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
+
+                        names.pop();
+                        names.pop();
+                        names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone(), TypeID::None));
+                    }
+                    if tokens[j].text_if_applicable == "&" {
+                        let name = get_next_rand_string();
+                        let value_1 = names[names.len() - 2].clone();
+                        let value_2 = names[names.len() - 1].clone();
+
+                        if value_1.2 == TypeID::I1 && value_2.2 == TypeID::I1 {
+                        write.push_str(&*("%".to_string() + &*name + " = icmp ne " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));//TODO
+                        } else {
+                            println!("Error: Tried to use `&&` on non-bool thing");
+                            exit(1);
+                        }
 
                         names.pop();
                         names.pop();
