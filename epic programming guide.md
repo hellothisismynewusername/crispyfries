@@ -1,4 +1,4 @@
-Whitespace is very important
+﻿Whitespace is very important
 
 Types:  
 i64  
@@ -10,6 +10,7 @@ define functions:
 
 define variables inside of functions:  
 `let var_name : type`
+Note that you must never name variables the same, even if they are in different scopes.
 
 inside of `do` blocks, starting with `do` and ending with `;`, you can do things, including returning. for example:  
 ```
@@ -17,10 +18,12 @@ let x : i32
 do 4 i32 -> x;
 ```
 integer literals should always have their type after them.  
-The `->` performs assignment for variables with the top item on the stack, and they leave the stack unchanged so you can use this for saving intemediate values or chaining assignments like this:    
+The `->` performs assignment for variables with the top item on the stack, and they leave the stack unchanged so you can use this for saving intermediate values or chaining assignments like this:    
 `do 10 i32 -> x -> y`  
 The values for x and y will both be 10.  
 You can return by assigning to ret, but do not continue using the stack after you return unless you plan on returning at another time later.
+
+A `do` block does not introduce another level of scope, but `while` does.
 
 inside of do blocks you can perform if statements like this:  
 ```

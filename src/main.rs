@@ -186,6 +186,14 @@ fn main() {
         }
         i += 1;
     }
+
+    for i in 0..buf.len() {
+        if buf[i] == "char" {
+            buf.remove(i);
+            buf.insert(i, "i8".to_string());
+        }
+    }
+
     print_string_vec(&buf);
 
     let mut put = true;
@@ -249,10 +257,19 @@ fn main() {
         i += 1;
     }
 
-    let mut var_names : Vec<(String, TypeID, TypeID)> = Vec::new(); //name and fake type
+    let mut var_names : Vec<Vec<(String, TypeID, TypeID)>> = Vec::new(); //name and fake type
+    var_names.push(Vec::new());
 
+    let mut scope_count : usize = 0;
     for i in 0..tokens.len() {
         if i > 0 && i < tokens.len() - 1 {
+            if tokens[i].type_id == TypeID::While {
+                var_names.push(Vec::new());
+                scope_count += 1;
+            }
+            if tokens[i].text_if_applicable == "endwhile" {
+                scope_count -= 1;
+            }
             if tokens[i].type_id == TypeID::UnknownToken {
                 if tokens[i - 1].type_id == TypeID::FunctionDeclaration {
                     tokens[i].type_id = TypeID::FunctionName;
@@ -270,9 +287,10 @@ fn main() {
                     };
                     println!("~ {}", type_as_string(&tokens[i + 2].type_id));
                     if tokens[i + 2].type_id == TypeID::Ptr {
-                        var_names.push((tokens[i].text_if_applicable.clone(), TypeID::Ptr, tokens[i].fake_type.clone()));
+                        var_names[scope_count].push((tokens[i].text_if_applicable.clone(), TypeID::Ptr, tokens[i].fake_type.clone()));
                     } else {
-                        var_names.push((tokens[i].text_if_applicable.clone(), tokens[i].fake_type.clone(), TypeID::None));
+                        println!("I PUT A {} OF FAKE TYPE {}", tokens[i].text_if_applicable.clone(), type_as_string(&tokens[i].fake_type));
+                        var_names[scope_count].push((tokens[i].text_if_applicable.clone(), tokens[i].fake_type.clone(), TypeID::None));
                     }
                 }
             }
@@ -300,12 +318,67 @@ fn main() {
         }
     }
 
+    scope_count = 0;
+    let mut doing = false;
     for i in 0..tokens.len() {
-        for name in &var_names {
-            if tokens[i].text_if_applicable == name.0 {
-                tokens[i].type_id = TypeID::VariableName;
-                tokens[i].fake_type = name.1.clone();
-                tokens[i].second_fake_type = name.2.clone();
+        if tokens[i].type_id == TypeID::While {
+            scope_count += 1;
+        }
+        if tokens[i].text_if_applicable == "endwhile" {
+            scope_count -= 1;
+        }
+        if tokens[i].type_id == TypeID::Do {
+            if doing {
+                println!("Error: Nested `do`s are not allowed");
+                exit(1);
+            }
+            doing = true;
+        }
+        if tokens[i].text_if_applicable == ";" {
+            if !doing {
+                println!("Error: Found `;` without matching `do`");
+                exit(1);
+            }
+            doing = false;
+        }
+        if doing {
+            println!("HUIH {}", tokens[i].text_if_applicable);
+            let msg = match tokens[i].type_id {
+                TypeID::VariableDeclaration => Some("Error: Cannot define a variable in a `do`"),
+                _ => None
+            };
+            if msg.is_some() {
+                println!("RAHHHHHHHHHH");
+                println!("{}", msg.unwrap());
+                exit(1);
+            }
+        }
+        if !doing {
+            let msg = match &*tokens[i].text_if_applicable {
+                "puts" => Some("Error: Cannot use `puts` outside of a `do`"),
+                _ => None
+            };
+            if msg.is_some() {
+                println!("{}", msg.unwrap());
+                exit(1);
+            }
+        }
+        for cntr in 0..(scope_count + 1) {
+            for name in &var_names[cntr] {
+                if tokens[i].text_if_applicable == name.0 {
+                    println!("TURNING A {} INTO A FAKE {}", name.0, type_as_string(&name.1));
+                    tokens[i].type_id = TypeID::VariableName;
+                    tokens[i].fake_type = name.1.clone();
+                    tokens[i].second_fake_type = name.2.clone();
+                }
+            }
+        }
+        for cntr2 in (scope_count + 1)..var_names.len() {
+            for name in &var_names[cntr2] {
+                if tokens[i].text_if_applicable == name.0 {
+                    println!("Error: use of variable `{}` out of its scope", name.0);
+                    exit(1);
+                }
             }
         }
     }
@@ -418,6 +491,7 @@ fn main() {
                             names.push((name.clone(), TypeID::VariableName, TypeID::I32, TypeID::None));
                         } else {
                             println!("Error: sizeof called on a token that is not a type");
+                            exit(1);
                         }
                     }
                     if tokens[j].text_if_applicable == "puts" && names.len() > 0 {
@@ -426,6 +500,7 @@ fn main() {
                             write.push_str(&*("call i32 @puts(ptr %".to_string() + &*str.0 + ")\n"));
                         } else {
                             println!("Error: tried to call puts on a something that is not a ptr");
+                            exit(1);
                         }
                     }
                     if tokens[j].text_if_applicable == "free" && names.len() > 0 {
@@ -435,6 +510,7 @@ fn main() {
                             names.pop();
                         } else {
                             println!("Error: tried to call free on a something that is not a ptr");
+                            exit(1);
                         }
                     }
                 }
@@ -446,6 +522,7 @@ fn main() {
                         names.push((name.clone(), item.1.clone(), item.3.clone(), TypeID::None));
                     } else {
                         println!("Error: tried to deref on something that is not a pointer");
+                        exit(1);
                     }
                 }
                 if tokens[j].type_id == TypeID::AssignAtGEP && names.len() > 1 {
@@ -492,37 +569,6 @@ fn main() {
                     write.push_str(&*("br i1 %".to_string() + &*cond.0 + ", label %" + &*label1_name + ", label %" + &*label2_name + "\n\n"));
                     labels.push((label1_name.clone(), label2_name.clone(), exit_name.clone()));
                     write.push_str(&*(label1_name.clone() + ":\n"));
-                }
-                if tokens[j].text_if_applicable == "?" && names.len() > 2 {
-                    println!("? names len is {}", names.len());
-                    let cond = names[names.len() - 3].clone();
-                    let first = names[names.len() - 2].clone();
-                    let second = names[names.len() - 1].clone();
-                    if cond.2 != TypeID::I1 {
-                        //println!("Error: condition type provided to '?' is not bool"); i have no idea
-                    }
-                    if first.2 != second.2 {
-                        println!("Error: types of output possibilities provided to '?' are not the same");
-                    }
-                    let label1_name = get_next_rand_string();
-                    let label2_name = get_next_rand_string();
-                    let finish_name = get_next_rand_string();
-                    let tmp_var_name = get_next_rand_string();
-                    write.push_str(&*("%".to_string() + &*tmp_var_name + " = alloca " + type_as_string(&second.2) + "\n"));
-                    write.push_str(&*("br i1 ".to_string() + &*cond.0 + ", label %" + &*label1_name + ", label %" + &*label2_name + "\n\n"));
-                    write.push_str(&*(label1_name.clone() + ":\nstore " + type_as_string(&second.2) + " " + &*first.0 + ", " + type_as_string(&second.2) + "* %" + &*tmp_var_name + "\nbr label %" + &*finish_name + "\n\n"));
-                    write.push_str(&*(label2_name.clone() + ":\nstore " + type_as_string(&second.2) + " " + &*second.0 + ", " + type_as_string(&second.2) + "* %" + &*tmp_var_name + "\nbr label %" + &*finish_name + "\n\n"));
-                    write.push_str(&*(finish_name.clone() + ":\n"));
-
-                    let tmp_var_name_again = get_next_rand_string();
-                    write.push_str(&*("%".to_string() + &*tmp_var_name_again + " = load " + type_as_string(&second.2) + ", " + type_as_string(&second.2) + "* %" + &*tmp_var_name + "\n"));
-
-                    names.pop();
-                    names.pop();
-                    names.pop();
-                    names.push((tmp_var_name_again.clone(), TypeID::IntegerLiteral, first.2.clone(), TypeID::None));
-                } else if tokens[j].text_if_applicable == "?" {
-                    println!("Error: stack length not sufficient for '?'");
                 }
                 if tokens[j].text_if_applicable == "->" {
                     if tokens[j + 1].type_id != TypeID::VariableName && tokens[j + 1].type_id != TypeID::Ret {
@@ -736,7 +782,7 @@ fn get_next_rand_string() -> String {
 
 fn type_as_string(inp : &TypeID) -> &str {
     match *inp {
-        TypeID::UnknownToken => "Unk",
+        TypeID::UnknownToken => "Unknown",
         TypeID::Type => "Type",
         TypeID::BinaryOperator => "BinOp",
         TypeID::VariableName => "VarName",
@@ -760,7 +806,7 @@ fn type_as_string(inp : &TypeID) -> &str {
         TypeID::Malloc => "Malloc",
         TypeID::GEP => "@",
         TypeID::AssignAtGEP => "<-",
-        _ => "IDK"
+        _ => "Unk"
     }
 }
 
