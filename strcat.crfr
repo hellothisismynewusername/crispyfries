@@ -16,7 +16,7 @@ fn main : i32 {
 		'o' str2 2 i32 @ <-
 		'u' str2 3 i32 @ <-
 		0 i8 str2 4 i32 @ <-
-		
+
 		str1 puts str2 puts
 	;
 
@@ -33,7 +33,7 @@ fn main : i32 {
 	;
 	not_reached while
 		do
-			str1 cntr @ & 0 i8 == if
+			str1 cntr @ # 0 i8 == if
 				false -> not_reached
 			else
 				cntr 1 i32 + -> cntr
@@ -50,7 +50,7 @@ fn main : i32 {
 	;
 	not_reached while
 		do
-			str2 cntr @ & 0 i8 == if
+			str2 cntr @ # 0 i8 == if
 				false -> not_reached
 			else
 				cntr 1 i32 + -> cntr
@@ -76,29 +76,29 @@ fn main : i32 {
 	;
 	not_yet_reached_str1_end while
 		do
-			str1 cntr1 @ & 0 i8 == if
+			str1 cntr1 @ # 0 i8 == if
 				false -> not_yet_reached_str1_end
 			else
-				str1 cntr1 @ & str3 cntr1 @ <-
+				str1 cntr1 @ # str3 cntr1 @ <-
 				cntr1 1 i32 + -> cntr1
 			endif
 		;
 	endwhile
 	not_yet_reached_str2_end while
 		do
-			str2 cntr2 @ & 0 i8 == if
+			str2 cntr2 @ # 0 i8 == if
 				false -> not_yet_reached_str2_end
 			else
 			endif
-			str2 cntr2 @ & str3 cntr2 end_of_str1 + @ <-
+			str2 cntr2 @ # str3 cntr2 end_of_str1 + @ <-
             cntr2 1 i32 + -> cntr2
 		;
 	endwhile
 
 	do
-	    str3 -> str1 puts free       /* reassign str1 to the new location of the concatenated strings, print str1 (doesn't consume), then free */
+	    str3 -> str1 free       /* reassign str1 to the new location of the concatenated strings, print str1 (doesn't consume), then free */
 	    str2 free
-	    str3 free
+	    /* str3 free    str1 and str3 point the same memory, and free was already called on the str1 pointer */
 	    end_of_str1 end_of_str2 1 i32 + + -> ret        /* return the length of the new string */
 	;
 }
