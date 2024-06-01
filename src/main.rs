@@ -7,6 +7,7 @@ use rand::distributions::{Alphanumeric, DistString};
 
 #[derive(PartialEq)]
 #[derive(Clone)]
+#[derive(Debug)]
 enum TypeID {
     I32,
     I64,
@@ -211,7 +212,7 @@ fn main() {
                     "do" => Token::new_with_type(TypeID::Do),
                     "let" => Token::new_with_type(TypeID::VariableDeclaration),
                     "+" | "-" | "*" | "/" | "rem" | "==" | "!=" | "&" | "|" | "<" | "<=" | ">" | ">=" => Token::new_with_type_and_text(TypeID::BinaryOperator, x.clone()),
-                    "->" | ":" | ";" | "else" | "endif" | "endwhile" | "{" | "}" => Token::new_with_type_and_text(TypeID::Sentinel, x.clone()),
+                    "->" | ":" | ";" | "else" | "endif" | "endwhile" | "{" | "}" | "noconsu" => Token::new_with_type_and_text(TypeID::Sentinel, x.clone()),
                     "if" => Token::new_with_type_and_text(TypeID::If, x.clone()),
                     "while" => Token::new_with_type_and_text(TypeID::While, x.clone()),
                     "ret" => Token::new_with_type(TypeID::Ret),
@@ -259,6 +260,7 @@ fn main() {
 
     let mut var_names : Vec<Vec<(String, TypeID, TypeID)>> = Vec::new(); //name and fake type
     var_names.push(Vec::new());
+    let mut throwaway_func_names : Vec<String> = Vec::new();
 
     let mut scope_count : usize = 0;
     for i in 0..tokens.len() {
@@ -273,6 +275,7 @@ fn main() {
             if tokens[i].type_id == TypeID::UnknownToken {
                 if tokens[i - 1].type_id == TypeID::FunctionDeclaration {
                     tokens[i].type_id = TypeID::FunctionName;
+                    throwaway_func_names.push(tokens[i].text_if_applicable.clone());
                 }
                 if tokens[i - 1].type_id == TypeID::VariableDeclaration && tokens[i + 1].type_id == TypeID::Sentinel {
                     tokens[i].type_id = TypeID::VariableName;
@@ -390,14 +393,65 @@ fn main() {
                 }
             }
         }
+        for cntr3 in 0..throwaway_func_names.len() {
+            if throwaway_func_names[cntr3] == tokens[i].text_if_applicable {
+                tokens[i].type_id = TypeID::FunctionName;
+            }
+        }
     }
 
+    let mut tmp_vars : Vec<Vec<(String, TypeID)>> = Vec::new(); //name, type
+    tmp_vars.push(Vec::new());
+    let mut tmp_vars_cntr : usize = 0;
+
     print_tokens(&tokens);
+
+    let mut func_names : Vec<(String, usize, bool, TypeID)> = Vec::new(); //func name, how many inputs, whether to consume, output type
 
     let mut write: String = String::new();
     write.push_str("declare dso_local i32 @puts(ptr)\ndeclare dso_local i32 @putchar(i8)\ndeclare ptr @malloc(i32)\ndeclare void @free(ptr)\n\n");
     let mut not_labels : Vec<(String, String, String)> = Vec::new();
     for i in 0..tokens.len() {
+        if i < tokens.len() - 1 && tokens[i].type_id == TypeID::FunctionDeclaration && tokens[i + 1].type_id == TypeID::FunctionName {  //merely for tmp_vars sake
+            let name = tokens[i + 1].text_if_applicable.clone();
+            for j in 0..throwaway_func_names.len() {
+                if name == throwaway_func_names[j] {
+
+                    let mut params : Vec<String> = Vec::new();
+                    let mut ns : Vec<String> = Vec::new();
+                    let mut ts : Vec<TypeID> = Vec::new();
+                    let orig = i + 2;
+                    let mut cntr = 0;
+                    if tokens[i + 2].type_id != TypeID::Sentinel {
+                        while orig + cntr < tokens.len() && tokens[orig + cntr].type_id != TypeID::Sentinel {
+                            params.push(tokens[orig + cntr].text_if_applicable.clone());
+                            cntr += 1;
+                        }
+                        for i in 0..params.len() {
+                            if i % 2 == 0 {
+                                ns.push(params[i].clone());
+                            } else {
+                                ts.push(string_to_fake_type(&*params[i]).unwrap());
+                            }
+                        }
+                    }
+
+                    if ns.len() > 0 {
+                        tmp_vars.push(Vec::new());
+                        tmp_vars_cntr += 1;
+                        for d in 0..ns.len() {
+                            tmp_vars[tmp_vars_cntr].push((ns[d].clone(), ts[d].clone()));
+                        }
+                    } else {
+                        tmp_vars.push(Vec::new());
+                        tmp_vars_cntr += 1;
+                    }
+
+                    println!("pusghed to tmp_vars. it is now {:?}", tmp_vars);
+
+                }
+            }
+        }
         if i < tokens.len() - 3 && tokens[i].type_id == TypeID::FunctionDeclaration && tokens[i + 1].type_id == TypeID::FunctionName {
             let fn_name = tokens[i + 1].text_if_applicable.clone();
             let mut params : Vec<String> = Vec::new();
@@ -405,10 +459,14 @@ fn main() {
             let orig = i + 2;
             let mut cntr = 0;
             let mut fn_type = "NotAType".to_string();
+            let mut consu = true;
             if tokens[i + 2].type_id != TypeID::Sentinel {
                 while orig + cntr < tokens.len() && tokens[orig + cntr].type_id != TypeID::Sentinel {
                     params.push(tokens[orig + cntr].text_if_applicable.clone());
                     cntr += 1;
+                }
+                if tokens[orig + cntr + 2].text_if_applicable == "noconsu" {
+                    consu = false;
                 }
                 for i in 0..params.len() {
                     if i < params.len() - 1 && i % 2 == 0 {
@@ -426,15 +484,26 @@ fn main() {
                         params_str.push_str(&*(" ".to_string() + &*p));
                     }
                 }
-                if tokens[i + cntr + 1].type_id == TypeID::Type {
-                    fn_type = tokens[i + cntr + 1].text_if_applicable.clone();
+                if tokens[orig + cntr + 1].type_id == TypeID::Type {
+                    fn_type = tokens[orig + cntr + 1].text_if_applicable.clone();
+                } else {
+                    println!("Error: Return type not specified for function `{}`", &*fn_name);
+                    exit(1);
                 }
             } else {
                 if tokens[i + 3].type_id == TypeID::Type {
                     fn_type = tokens[i + 3].text_if_applicable.clone();
+                } else {
+                    println!("Error: Return type not specified for function `{}`", &*fn_name);
+                    exit(1);
                 }
             }
             write.push_str(&*("define ".to_string() + &*fn_type + " @" + &*fn_name + "(" + &*params_str + ") {\n"));
+            if string_to_fake_type(&*fn_type).is_none() {
+                println!("Error: output type of function `{}` is invalid", &*fn_name);
+            }
+            func_names.push((fn_name.clone(), params.len() / 2, consu, string_to_fake_type(&*fn_type).unwrap()));
+            println!("made a function {}, {}, {}", &*fn_name, params.len() / 2, consu);
         }
 
         if i < tokens.len() - 3 && tokens[i].type_id == TypeID::VariableDeclaration && tokens[i + 1].type_id == TypeID::VariableName {
@@ -452,6 +521,8 @@ fn main() {
 
         if tokens[i].type_id == TypeID::Sentinel && tokens[i].text_if_applicable == "}" {
             write.push_str("}\n");
+            tmp_vars.pop();
+            tmp_vars_cntr -= 1;
         }
 
         if tokens[i].text_if_applicable == "endwhile" {
@@ -490,7 +561,44 @@ fn main() {
             println!("len is {}", length);
             for j in (i + 1)..(i + length) {
                 if j > 0 && tokens[j].type_id == TypeID::FunctionName && tokens[j - 1].type_id != TypeID::FunctionDeclaration {
-                    
+                    println!("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+                    for a in 0..func_names.len() {
+                        if func_names[a].0 == tokens[j].text_if_applicable {
+                            let name = func_names[a].0.clone();
+                            let inp_count = func_names[a].1;
+                            let consu = func_names[a].2;
+                            let output_type = func_names[a].3.clone();
+
+                            if names.len() < inp_count {
+                                println!("{} < {}", names.len(), inp_count);
+                                println!("Error: Not enough inputs supplied for function `{}`", &*name);
+                                exit(1);
+                            }
+                            let mut inp : String = String::from("");
+                            let mut inp_vec = Vec::new();
+                            for b in 0..inp_count {
+                                inp_vec.push(names.pop().unwrap());
+                            }
+                            inp_vec.reverse();
+                            for c in 0..inp_vec.len() {
+                                if c == inp_vec.len() - 1 {
+                                    inp.push_str(&*(type_as_string(&inp_vec[c].2).to_string() + " %" + &*inp_vec[c].0));
+                                } else {
+                                    inp.push_str(&*(type_as_string(&inp_vec[c].2).to_string() + " %" + &*inp_vec[c].0 + ", "));
+                                }
+                            }
+                            let out_name = get_next_rand_string();
+                            write.push_str(&*("%".to_string() + &*out_name + " = call " + type_as_string(&output_type) + " @" + &*name + "(" + &*inp + ")\n"));
+
+                            if consu {
+                                for _ in 0..inp_count {
+                                    names.pop();
+                                }
+                            }
+
+                            names.push((out_name.clone(), TypeID::IntegerLiteral, output_type.clone(), TypeID::None));
+                        }
+                    }
                 }
                 if tokens[j].type_id == TypeID::Simple {
                     if tokens[j].text_if_applicable == "sizeof" && j > 0 {
@@ -617,6 +725,24 @@ fn main() {
                     }
                 }
                 if tokens[j].type_id != TypeID::BinaryOperator {
+                    if tokens[j].text_if_applicable.chars().nth(0).is_some() && tokens[j].text_if_applicable.chars().nth(0).unwrap() == '~' {
+                        println!("----level 1 {:?}", tmp_vars);
+                        if tmp_vars.len() > 0 {
+                            println!("----level 2");
+                            for a in 0..tmp_vars[tmp_vars_cntr].len() {
+                                let mut name : String = String::from("");
+                                for (b, x) in tokens[j].text_if_applicable.chars().enumerate() {
+                                    if b != 0 {
+                                        name.push(x);
+                                    }
+                                }
+                                if name == tmp_vars[tmp_vars_cntr][a].0 {
+                                    println!("----level 3");
+                                    names.push((name.clone(), TypeID::IntegerLiteral, tmp_vars[tmp_vars_cntr][a].1.clone(), TypeID::None));
+                                }
+                            }
+                        }
+                    }
                     if tokens[j].type_id == TypeID::IntegerLiteral {
                         let name = get_next_rand_string();
                         names.push((name.clone(), tokens[j].type_id.clone(), tokens[j].fake_type.clone(), TypeID::None));
@@ -898,6 +1024,16 @@ fn type_as_string(inp : &TypeID) -> &str {
         TypeID::GEP => "@",
         TypeID::AssignAtGEP => "<-",
         _ => "Unk"
+    }
+}
+
+fn string_to_fake_type(inp : &str) -> Option<TypeID> {
+    match inp {
+        "i32" => Some(TypeID::I32),
+        "i64" => Some(TypeID::I64),
+        "i8" => Some(TypeID::I8),
+        "i1" => Some(TypeID::I1),
+        _ => None
     }
 }
 
