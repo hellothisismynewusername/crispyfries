@@ -210,7 +210,7 @@ fn main() {
                     "fn" => Token::new_with_type(TypeID::FunctionDeclaration),
                     "do" => Token::new_with_type(TypeID::Do),
                     "let" => Token::new_with_type(TypeID::VariableDeclaration),
-                    "+" | "-" | "*" | "/" | "rem" | "==" | "!=" | "&" | "|" => Token::new_with_type_and_text(TypeID::BinaryOperator, x.clone()),
+                    "+" | "-" | "*" | "/" | "rem" | "==" | "!=" | "&" | "|" | "<" | "<=" | ">" | ">=" => Token::new_with_type_and_text(TypeID::BinaryOperator, x.clone()),
                     "->" | ":" | ";" | "else" | "endif" | "endwhile" | "{" | "}" => Token::new_with_type_and_text(TypeID::Sentinel, x.clone()),
                     "if" => Token::new_with_type_and_text(TypeID::If, x.clone()),
                     "while" => Token::new_with_type_and_text(TypeID::While, x.clone()),
@@ -725,7 +725,7 @@ fn main() {
 
                         names.pop();
                         names.pop();
-                        names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone(), TypeID::None));
+                        names.push((name.clone(), TypeID::IntegerLiteral, TypeID::I1, TypeID::None));
                     }
                     if tokens[j].text_if_applicable == "!=" {
                         let name = get_next_rand_string();
@@ -737,7 +737,7 @@ fn main() {
 
                         names.pop();
                         names.pop();
-                        names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone(), TypeID::None));
+                        names.push((name.clone(), TypeID::IntegerLiteral, TypeID::I1, TypeID::None));
                     }
                     if tokens[j].text_if_applicable == "&" {
                         let name = get_next_rand_string();
@@ -760,6 +760,50 @@ fn main() {
                         names.pop();
                         names.pop();
                         names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone(), TypeID::None));
+                    }
+                    if tokens[j].text_if_applicable == "<" {
+                        let name = get_next_rand_string();
+                        let value_1 = names[names.len() - 2].clone();
+                        let value_2 = names[names.len() - 1].clone();
+
+                        write.push_str(&*("%".to_string() + &*name + " = icmp slt " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
+
+                        names.pop();
+                        names.pop();
+                        names.push((name.clone(), TypeID::IntegerLiteral, TypeID::I1, TypeID::None));
+                    }
+                    if tokens[j].text_if_applicable == "<=" {
+                        let name = get_next_rand_string();
+                        let value_1 = names[names.len() - 2].clone();
+                        let value_2 = names[names.len() - 1].clone();
+
+                        write.push_str(&*("%".to_string() + &*name + " = icmp sle " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
+
+                        names.pop();
+                        names.pop();
+                        names.push((name.clone(), TypeID::IntegerLiteral, TypeID::I1, TypeID::None));
+                    }
+                    if tokens[j].text_if_applicable == ">" {
+                        let name = get_next_rand_string();
+                        let value_1 = names[names.len() - 2].clone();
+                        let value_2 = names[names.len() - 1].clone();
+
+                        write.push_str(&*("%".to_string() + &*name + " = icmp sgt " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
+
+                        names.pop();
+                        names.pop();
+                        names.push((name.clone(), TypeID::IntegerLiteral, TypeID::I1, TypeID::None));
+                    }
+                    if tokens[j].text_if_applicable == ">=" {
+                        let name = get_next_rand_string();
+                        let value_1 = names[names.len() - 2].clone();
+                        let value_2 = names[names.len() - 1].clone();
+
+                        write.push_str(&*("%".to_string() + &*name + " = icmp sge " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
+
+                        names.pop();
+                        names.pop();
+                        names.push((name.clone(), TypeID::IntegerLiteral, TypeID::I1, TypeID::None));
                     }
                 }
             }
