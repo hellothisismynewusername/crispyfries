@@ -560,6 +560,7 @@ fn main() {
             }
             println!("len is {}", length);
             for j in (i + 1)..(i + length) {
+                println!("Hello. How are you. I am trying to debug. Please help me. There too much shit coding-wuhhhh. {:?}", names);
                 if j > 0 && tokens[j].type_id == TypeID::FunctionName && tokens[j - 1].type_id != TypeID::FunctionDeclaration {
                     println!("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
                     for a in 0..func_names.len() {
@@ -591,7 +592,7 @@ fn main() {
                             write.push_str(&*("%".to_string() + &*out_name + " = call " + type_as_string(&output_type) + " @" + &*name + "(" + &*inp + ")\n"));
 
                             if consu {
-                                for _ in 0..inp_count {
+                                for _ in 0..(inp_count / 2) {
                                     names.pop();
                                 }
                             }
@@ -689,10 +690,12 @@ fn main() {
                     write.push_str(&*("br label %".to_string() + &*labels[labels.len() - 1].2 + "\n"));
                     write.push_str(&*("\n".to_string() + &*labels[labels.len() - 1].2 + ":\n"));
                     labels.pop();
+                    names.clear();
                 }
                 if tokens[j].text_if_applicable == "else" {
                     write.push_str(&*("br label %".to_string() + &*labels[labels.len() - 1].2 + "\n"));
                     write.push_str(&*("\n".to_string() + &*labels[labels.len() - 1].1 + ":\n"));
+                    names.clear();
                 }
                 if tokens[j].type_id == TypeID::If {
                     let cond = names[names.len() - 1].clone();     //TODO: you should check if latest name is a bool
@@ -702,10 +705,12 @@ fn main() {
                     write.push_str(&*("br i1 %".to_string() + &*cond.0 + ", label %" + &*label1_name + ", label %" + &*label2_name + "\n\n"));
                     labels.push((label1_name.clone(), label2_name.clone(), exit_name.clone()));
                     write.push_str(&*(label1_name.clone() + ":\n"));
+                    names.clear();
                 }
                 if tokens[j].text_if_applicable == "->" {
                     if tokens[j + 1].type_id != TypeID::VariableName && tokens[j + 1].type_id != TypeID::Ret {
-                        println!("UH OH!!!");
+                        println!("Error: `{}` is not a variable or `ret`", &*tokens[j + 1].text_if_applicable);
+                        exit(1);
                     }
                     let top = names[names.len() - 1].clone();
                     if tokens[j + 1].type_id == TypeID::Ret {
@@ -742,31 +747,32 @@ fn main() {
                                 }
                             }
                         }
-                    }
-                    if tokens[j].type_id == TypeID::IntegerLiteral {
-                        let name = get_next_rand_string();
-                        names.push((name.clone(), tokens[j].type_id.clone(), tokens[j].fake_type.clone(), TypeID::None));
-                        println!("I pushed a {} which is a {} but actually {}", &name, type_as_string(&tokens[j].type_id), type_as_string(&tokens[j].fake_type));
-                        if tokens[j].fake_type == TypeID::I32 {
-                            write.push_str(&*("%".to_string() + &*name + " = add i32 " + &*tokens[j].i32_if_applicable.to_string() + ", 0\n"));
+                    } else {
+                        if tokens[j].type_id == TypeID::IntegerLiteral {
+                            let name = get_next_rand_string();
+                            names.push((name.clone(), tokens[j].type_id.clone(), tokens[j].fake_type.clone(), TypeID::None));
+                            println!("I pushed a {} which is a {} but actually {}", &name, type_as_string(&tokens[j].type_id), type_as_string(&tokens[j].fake_type));
+                            if tokens[j].fake_type == TypeID::I32 {
+                                write.push_str(&*("%".to_string() + &*name + " = add i32 " + &*tokens[j].i32_if_applicable.to_string() + ", 0\n"));
+                            }
+                            if tokens[j].fake_type == TypeID::I64 {
+                                write.push_str(&*("%".to_string() + &*name + " = add i64 " + &*tokens[j].i64_if_applicable.to_string() + ", 0\n"));
+                            }
+                            if tokens[j].fake_type == TypeID::I8 {
+                                write.push_str(&*("%".to_string() + &*name + " = add i8 " + &*tokens[j].i8_if_applicable.to_string() + ", 0\n"));
+                            }
+                            if tokens[j].fake_type == TypeID::I1 {
+                                write.push_str(&*("%".to_string() + &*name + " = add i1 " + &*tokens[j].text_if_applicable + ", 0\n"));
+                            }
+                        } else if tokens[j].type_id == TypeID::VariableName {
+                            let name = get_next_rand_string();
+                            if tokens[j].fake_type == TypeID::Ptr {
+                                write.push_str(&*("%".to_string() + &*name + " = load ptr, ptr %" + &*tokens[j].text_if_applicable + "\n"));
+                            } else {
+                                write.push_str(&*("%".to_string() + &*name + " = load " + type_as_string(&tokens[j].fake_type) + ", " + type_as_string(&tokens[j].fake_type) + "* %" + &*tokens[j].text_if_applicable + "\n"));
+                            }
+                            names.push((name.clone(), TypeID::IntegerLiteral, tokens[j].fake_type.clone(), tokens[j].second_fake_type.clone()));
                         }
-                        if tokens[j].fake_type == TypeID::I64 {
-                            write.push_str(&*("%".to_string() + &*name + " = add i64 " + &*tokens[j].i64_if_applicable.to_string() + ", 0\n"));
-                        }
-                        if tokens[j].fake_type == TypeID::I8 {
-                            write.push_str(&*("%".to_string() + &*name + " = add i8 " + &*tokens[j].i8_if_applicable.to_string() + ", 0\n"));
-                        }
-                        if tokens[j].fake_type == TypeID::I1 {
-                            write.push_str(&*("%".to_string() + &*name + " = add i1 " + &*tokens[j].text_if_applicable + ", 0\n"));
-                        }
-                    } else if tokens[j].type_id == TypeID::VariableName {
-                        let name = get_next_rand_string();
-                        if tokens[j].fake_type == TypeID::Ptr {
-                            write.push_str(&*("%".to_string() + &*name + " = load ptr, ptr %" + &*tokens[j].text_if_applicable + "\n"));
-                        } else {
-                            write.push_str(&*("%".to_string() + &*name + " = load " + type_as_string(&tokens[j].fake_type) + ", " + type_as_string(&tokens[j].fake_type) + "* %" + &*tokens[j].text_if_applicable + "\n"));
-                        }
-                        names.push((name.clone(), TypeID::IntegerLiteral, tokens[j].fake_type.clone(), tokens[j].second_fake_type.clone()));
                     }
                 } else { //it is binOp
                     if tokens[j].text_if_applicable == "+" {
