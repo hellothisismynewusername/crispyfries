@@ -8,6 +8,7 @@ add these to epic programming guide:
 	@ (GEP)
 	& (deref)
 	<- (assign value to location specified by pointer)
+	functions
 
 check if there's some operators that don't consume / should consume items.
 

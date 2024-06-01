@@ -466,6 +466,7 @@ fn main() {
                     cntr += 1;
                 }
                 if tokens[orig + cntr + 2].text_if_applicable == "noconsu" {
+                    println!("YO DO NOTTTT CONSUME OJAY?!!?????????????!!!!!!!!!!!!!!!!!!!!!!!");
                     consu = false;
                 }
                 for i in 0..params.len() {
@@ -560,7 +561,7 @@ fn main() {
             }
             println!("len is {}", length);
             for j in (i + 1)..(i + length) {
-                println!("Hello. How are you. I am trying to debug. Please help me. There too much shit coding-wuhhhh. {:?}", names);
+                println!("There too much shit coding-wuhhhh. {:?}", names);
                 if j > 0 && tokens[j].type_id == TypeID::FunctionName && tokens[j - 1].type_id != TypeID::FunctionDeclaration {
                     println!("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
                     for a in 0..func_names.len() {
@@ -578,7 +579,7 @@ fn main() {
                             let mut inp : String = String::from("");
                             let mut inp_vec = Vec::new();
                             for b in 0..inp_count {
-                                inp_vec.push(names.pop().unwrap());
+                                inp_vec.push(names[names.len() - 1].clone());
                             }
                             inp_vec.reverse();
                             for c in 0..inp_vec.len() {
@@ -592,6 +593,7 @@ fn main() {
                             write.push_str(&*("%".to_string() + &*out_name + " = call " + type_as_string(&output_type) + " @" + &*name + "(" + &*inp + ")\n"));
 
                             if consu {
+                                println!("YOOOOOOOO I ATE");
                                 for _ in 0..(inp_count / 2) {
                                     names.pop();
                                 }
