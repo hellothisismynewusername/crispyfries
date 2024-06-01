@@ -13,6 +13,7 @@ enum TypeID {
     I64,
     I8,
     I1,
+    Void,
     BinaryOperator,
     Sentinel,
     Type,
@@ -216,7 +217,7 @@ fn main() {
                     "if" => Token::new_with_type_and_text(TypeID::If, x.clone()),
                     "while" => Token::new_with_type_and_text(TypeID::While, x.clone()),
                     "ret" => Token::new_with_type(TypeID::Ret),
-                    "i32" | "i64" | "i8" | "i1" => Token::new_with_type_and_text(TypeID::Type, x.clone()),
+                    "i32" | "i64" | "i8" | "i1" | "void" => Token::new_with_type_and_text(TypeID::Type, x.clone()),
                     "^" => Token::new_with_type_and_text(TypeID::PtrNotation, x.clone()),
                     "malloc" => Token::new_with_type(TypeID::Malloc),
                     "free" => Token::new_with_type_and_text(TypeID::Simple, x.clone()),
@@ -400,13 +401,14 @@ fn main() {
         }
     }
 
-    let mut tmp_vars : Vec<Vec<(String, TypeID)>> = Vec::new(); //name, type
+    let mut tmp_vars : Vec<Vec<(String, TypeID, TypeID, TypeID)>> = Vec::new();
     tmp_vars.push(Vec::new());
     let mut tmp_vars_cntr : usize = 0;
 
     print_tokens(&tokens);
 
-    let mut func_names : Vec<(String, usize, bool, TypeID)> = Vec::new(); //func name, how many inputs, whether to consume, output type
+    let mut func_names : Vec<(String, usize, bool, (TypeID, TypeID))> = Vec::new(); //func name, how many inputs, whether to consume, (outType, outFakeType)
+    let mut func_should_void_return = false;
 
     let mut write: String = String::new();
     write.push_str("declare dso_local i32 @puts(ptr)\ndeclare dso_local i32 @putchar(i8)\ndeclare ptr @malloc(i32)\ndeclare void @free(ptr)\n\n");
@@ -417,21 +419,25 @@ fn main() {
             for j in 0..throwaway_func_names.len() {
                 if name == throwaway_func_names[j] {
 
-                    let mut params : Vec<String> = Vec::new();
+                    let mut params : Vec<Token> = Vec::new();
                     let mut ns : Vec<String> = Vec::new();
-                    let mut ts : Vec<TypeID> = Vec::new();
+                    let mut ts : Vec<(TypeID, TypeID)> = Vec::new(); //fake type, second fake type
                     let orig = i + 2;
                     let mut cntr = 0;
                     if tokens[i + 2].type_id != TypeID::Sentinel {
                         while orig + cntr < tokens.len() && tokens[orig + cntr].type_id != TypeID::Sentinel {
-                            params.push(tokens[orig + cntr].text_if_applicable.clone());
+                            params.push(tokens[orig + cntr].clone());
                             cntr += 1;
                         }
                         for i in 0..params.len() {
                             if i % 2 == 0 {
-                                ns.push(params[i].clone());
+                                ns.push(params[i].text_if_applicable.clone());
                             } else {
-                                ts.push(string_to_fake_type(&*params[i]).unwrap());
+                                if params[i].type_id == TypeID::Ptr {
+                                    ts.push((TypeID::Ptr, string_to_fake_type(&*params[i].text_if_applicable).unwrap()));
+                                } else {
+                                    ts.push((string_to_fake_type(&*params[i].text_if_applicable).unwrap(), TypeID::None));
+                                }
                             }
                         }
                     }
@@ -440,7 +446,7 @@ fn main() {
                         tmp_vars.push(Vec::new());
                         tmp_vars_cntr += 1;
                         for d in 0..ns.len() {
-                            tmp_vars[tmp_vars_cntr].push((ns[d].clone(), ts[d].clone()));
+                            tmp_vars[tmp_vars_cntr].push((ns[d].clone(), TypeID::IntegerLiteral, ts[d].0.clone(), ts[d].1.clone()));
                         }
                     } else {
                         tmp_vars.push(Vec::new());
@@ -459,10 +465,15 @@ fn main() {
             let orig = i + 2;
             let mut cntr = 0;
             let mut fn_type = "NotAType".to_string();
+            let mut fn_actual_out_type_tuple : (TypeID, TypeID) = (TypeID::None, TypeID::None);
             let mut consu = true;
             if tokens[i + 2].type_id != TypeID::Sentinel {
                 while orig + cntr < tokens.len() && tokens[orig + cntr].type_id != TypeID::Sentinel {
-                    params.push(tokens[orig + cntr].text_if_applicable.clone());
+                    if tokens[orig + cntr].type_id == TypeID::Ptr {
+                        params.push(String::from("ptr"));
+                    } else {
+                        params.push(tokens[orig + cntr].text_if_applicable.clone());
+                    }
                     cntr += 1;
                 }
                 if tokens[orig + cntr + 2].text_if_applicable == "noconsu" {
@@ -485,26 +496,44 @@ fn main() {
                         params_str.push_str(&*(" ".to_string() + &*p));
                     }
                 }
-                if tokens[orig + cntr + 1].type_id == TypeID::Type {
-                    fn_type = tokens[orig + cntr + 1].text_if_applicable.clone();
+                if tokens[orig + cntr + 1].type_id == TypeID::Type || tokens[orig + cntr + 1].type_id == TypeID::Ptr {
+                    if tokens[orig + cntr + 1].type_id == TypeID::Ptr {
+                        fn_type = String::from("ptr");
+                    } else {
+                        fn_type = tokens[orig + cntr + 1].text_if_applicable.clone();
+                    }
                 } else {
                     println!("Error: Return type not specified for function `{}`", &*fn_name);
                     exit(1);
                 }
             } else {
-                if tokens[i + 3].type_id == TypeID::Type {
-                    fn_type = tokens[i + 3].text_if_applicable.clone();
+                if tokens[orig + cntr + 1].type_id == TypeID::Type || tokens[orig + cntr + 1].type_id == TypeID::Ptr {
+                    if tokens[orig + cntr + 1].type_id == TypeID::Ptr {
+                        fn_type = String::from("ptr");
+                    } else {
+                        fn_type = tokens[orig + cntr + 1].text_if_applicable.clone();
+                    }
                 } else {
                     println!("Error: Return type not specified for function `{}`", &*fn_name);
                     exit(1);
                 }
             }
+            fn_actual_out_type_tuple =
+                if tokens[orig + cntr + 1].type_id == TypeID::Type {
+                    (string_to_fake_type(&*tokens[orig + cntr + 1].text_if_applicable).unwrap(), TypeID::None)
+                } else {
+                    (TypeID::Ptr, string_to_fake_type(&*tokens[orig + cntr + 1].text_if_applicable).unwrap())
+                };
             write.push_str(&*("define ".to_string() + &*fn_type + " @" + &*fn_name + "(" + &*params_str + ") {\n"));
             if string_to_fake_type(&*fn_type).is_none() {
                 println!("Error: output type of function `{}` is invalid", &*fn_name);
             }
-            func_names.push((fn_name.clone(), params.len() / 2, consu, string_to_fake_type(&*fn_type).unwrap()));
+            func_names.push((fn_name.clone(), params.len() / 2, consu, fn_actual_out_type_tuple));
             println!("made a function {}, {}, {}", &*fn_name, params.len() / 2, consu);
+
+            if fn_type == "void" {
+                func_should_void_return = true;
+            }
         }
 
         if i < tokens.len() - 3 && tokens[i].type_id == TypeID::VariableDeclaration && tokens[i + 1].type_id == TypeID::VariableName {
@@ -521,6 +550,10 @@ fn main() {
         }
 
         if tokens[i].type_id == TypeID::Sentinel && tokens[i].text_if_applicable == "}" {
+            if func_should_void_return {
+                write.push_str("ret void\n");
+                func_should_void_return = false;
+            }
             write.push_str("}\n");
             tmp_vars.pop();
             tmp_vars_cntr -= 1;
@@ -572,14 +605,16 @@ fn main() {
                             let output_type = func_names[a].3.clone();
 
                             if names.len() < inp_count {
-                                println!("{} < {}", names.len(), inp_count);
+                                //println!("{} < {}", names.len(), inp_count);
                                 println!("Error: Not enough inputs supplied for function `{}`", &*name);
                                 exit(1);
                             }
                             let mut inp : String = String::from("");
                             let mut inp_vec = Vec::new();
+                            let mut incrementer = 1;
                             for b in 0..inp_count {
-                                inp_vec.push(names[names.len() - 1].clone());
+                                inp_vec.push(names[names.len() - incrementer].clone());
+                                incrementer += 1;
                             }
                             inp_vec.reverse();
                             for c in 0..inp_vec.len() {
@@ -590,16 +625,30 @@ fn main() {
                                 }
                             }
                             let out_name = get_next_rand_string();
-                            write.push_str(&*("%".to_string() + &*out_name + " = call " + type_as_string(&output_type) + " @" + &*name + "(" + &*inp + ")\n"));
+                            if output_type.0 == TypeID::Void {
+                                write.push_str(&*("call ".to_string() + "void @" + &*name + "(" + &*inp + ")\n"));
+                            } else {
+                                if output_type.0 == TypeID::Ptr {
+                                    write.push_str(&*("%".to_string() + &*out_name + " = call ptr @" + &*name + "(" + &*inp + ")\n"));
+                                } else {
+                                    write.push_str(&*("%".to_string() + &*out_name + " = call " + type_as_string(&output_type.0) + " @" + &*name + "(" + &*inp + ")\n"));
+                                }
+                            }
 
                             if consu {
                                 println!("YOOOOOOOO I ATE");
-                                for _ in 0..(inp_count / 2) {
+                                for _ in 0..(inp_count) {
                                     names.pop();
                                 }
                             }
 
-                            names.push((out_name.clone(), TypeID::IntegerLiteral, output_type.clone(), TypeID::None));
+                            if output_type.0 != TypeID::Void {
+                                if output_type.0 == TypeID::Ptr {
+                                    names.push((out_name.clone(), TypeID::IntegerLiteral, TypeID::Ptr, output_type.1.clone()));
+                                } else {
+                                    names.push((out_name.clone(), TypeID::IntegerLiteral, output_type.0.clone(), TypeID::None));
+                                }
+                            }
                         }
                     }
                 }
@@ -665,7 +714,7 @@ fn main() {
                     let assignment = names[names.len() - 2].clone();
                     let ptr = names[names.len() - 1].clone();
                     names.pop();
-                    names.pop();
+                    //names.pop();
 
                     write.push_str(&*("store ".to_string() + type_as_string(&assignment.2) + " %" + &*assignment.0 + ", ptr %" + &*ptr.0 + "\n"));
                 }
@@ -716,13 +765,7 @@ fn main() {
                     }
                     let top = names[names.len() - 1].clone();
                     if tokens[j + 1].type_id == TypeID::Ret {
-                        println!("moments before REEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEYT");
-                        if top.2 == TypeID::Ptr {
-                            write.push_str(&*("ret ".to_string() + type_as_string(&top.3) + " %" + &*top.0 + "\n"));
-                            println!("REEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEYT");
-                        } else {
-                            write.push_str(&*("ret ".to_string() + type_as_string(&top.2) + " %" + &*top.0 + "\n"));
-                        }
+                        write.push_str(&*("ret ".to_string() + type_as_string(&top.2) + " %" + &*top.0 + "\n"));
                     } else {
                         if tokens[j + 1].fake_type == TypeID::Ptr {
                             write.push_str(&*("store ptr %".to_string() + &*top.0 + ", ptr %" + &*tokens[j + 1].text_if_applicable + "\n"));
@@ -745,7 +788,7 @@ fn main() {
                                 }
                                 if name == tmp_vars[tmp_vars_cntr][a].0 {
                                     println!("----level 3");
-                                    names.push((name.clone(), TypeID::IntegerLiteral, tmp_vars[tmp_vars_cntr][a].1.clone(), TypeID::None));
+                                    names.push((name.clone(), TypeID::IntegerLiteral, tmp_vars[tmp_vars_cntr][a].2.clone(), tmp_vars[tmp_vars_cntr][a].3.clone()));
                                 }
                             }
                         }
@@ -1022,11 +1065,12 @@ fn type_as_string(inp : &TypeID) -> &str {
         TypeID::I64 => "i64",
         TypeID::I8 => "i8",
         TypeID::I1 => "i1",
+        TypeID::Void => "void",
         TypeID::Ret => "Ret",
         TypeID::Operator => "Operator",
         TypeID::If => "If",
         TypeID::While => "While",
-        TypeID::Ptr => "Ptr",
+        TypeID::Ptr => "ptr",
         TypeID::PtrNotation => "PtrNotation",
         TypeID::Malloc => "Malloc",
         TypeID::GEP => "@",
@@ -1041,6 +1085,7 @@ fn string_to_fake_type(inp : &str) -> Option<TypeID> {
         "i64" => Some(TypeID::I64),
         "i8" => Some(TypeID::I8),
         "i1" => Some(TypeID::I1),
+        "void" => Some(TypeID::Void),
         _ => None
     }
 }
