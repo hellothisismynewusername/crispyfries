@@ -1,0 +1,88 @@
+fn fact inp i32 : i32 {
+    do
+        ~inp 1 i32 == if
+            1 i32 -> ret
+        else
+            ~inp ~inp 1 i32 - fact * -> ret
+        endif
+        -1 i32 -> ret
+    ;
+}
+
+fn strcat inp1 i8^ inp2 i8^ : i8^ {
+    let end_of_inp1 : i32
+	let end_of_inp2 : i32
+
+	/* finding end of ~inp1 */
+	let not_reached : bool
+	let cntr : i32
+	do
+		true -> not_reached
+		0 i32 -> cntr
+	;
+	not_reached while
+		do
+			~inp1 cntr @ # 0 i8 == if
+				false -> not_reached
+			else
+				cntr 1 i32 + -> cntr
+			endif
+		;
+	endwhile
+	do cntr -> end_of_inp1;
+
+
+	/* finding end of ~inp2 */
+	do
+		true -> not_reached
+		0 i32 -> cntr
+	;
+	not_reached while
+		do
+			~inp2 cntr @ # 0 i8 == if
+				false -> not_reached
+			else
+				cntr 1 i32 + -> cntr
+			endif
+		;
+	endwhile
+	do cntr -> end_of_inp2;
+
+    /* putting ~inp1 and ~inp2 into out */
+	let out : i8^
+	let cntr1 : i32
+	let cntr2 : i32
+	let not_yet_reached_inp1_end : bool
+	let not_yet_reached_inp2_end : bool
+	do
+		0 i32 -> cntr1 -> cntr2
+		true -> not_yet_reached_inp1_end -> not_yet_reached_inp2_end
+
+		end_of_inp1
+		end_of_inp2 1 i32 +
+		+
+		malloc -> out
+	;
+	not_yet_reached_inp1_end while
+		do
+			~inp1 cntr1 @ # 0 i8 == if
+				false -> not_yet_reached_inp1_end
+			else
+				~inp1 cntr1 @ # out cntr1 @ <-
+				cntr1 1 i32 + -> cntr1
+			endif
+		;
+	endwhile
+	not_yet_reached_inp2_end while
+		do
+			~inp2 cntr2 @ # 0 i8 == if
+				false -> not_yet_reached_inp2_end
+			else
+			endif
+			~inp2 cntr2 @ # out cntr2 end_of_inp1 + @ <-
+            cntr2 1 i32 + -> cntr2
+		;
+	endwhile
+
+	do out -> ret;
+}

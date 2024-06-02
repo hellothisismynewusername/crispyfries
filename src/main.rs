@@ -209,7 +209,7 @@ fn main() {
                 Token::new_with_type_and_text(TypeID::IntegerLiteral, x)
             } else {
                 match &*x {
-                    "fn" => Token::new_with_type(TypeID::FunctionDeclaration),
+                    "fn" | "dec" => Token::new_with_type_and_text(TypeID::FunctionDeclaration, x.clone()),
                     "do" => Token::new_with_type(TypeID::Do),
                     "let" => Token::new_with_type(TypeID::VariableDeclaration),
                     "+" | "-" | "*" | "/" | "rem" | "==" | "!=" | "&" | "|" | "<" | "<=" | ">" | ">=" => Token::new_with_type_and_text(TypeID::BinaryOperator, x.clone()),
@@ -414,7 +414,7 @@ fn main() {
     write.push_str("declare dso_local i32 @puts(ptr)\ndeclare dso_local i32 @putchar(i8)\ndeclare ptr @malloc(i32)\ndeclare void @free(ptr)\n\n");
     let mut not_labels : Vec<(String, String, String)> = Vec::new();
     for i in 0..tokens.len() {
-        if i < tokens.len() - 1 && tokens[i].type_id == TypeID::FunctionDeclaration && tokens[i + 1].type_id == TypeID::FunctionName {  //merely for tmp_vars sake
+        if i < tokens.len() - 1 && tokens[i].type_id == TypeID::FunctionDeclaration && tokens[i].text_if_applicable != "dec" && tokens[i + 1].type_id == TypeID::FunctionName {  //merely for tmp_vars sake
             let name = tokens[i + 1].text_if_applicable.clone();
             for j in 0..throwaway_func_names.len() {
                 if name == throwaway_func_names[j] {
@@ -446,6 +446,7 @@ fn main() {
                         tmp_vars.push(Vec::new());
                         tmp_vars_cntr += 1;
                         for d in 0..ns.len() {
+                            println!("{:?}, {}", tokens[i].text_if_applicable, i);
                             tmp_vars[tmp_vars_cntr].push((ns[d].clone(), TypeID::IntegerLiteral, ts[d].0.clone(), ts[d].1.clone()));
                         }
                     } else {
@@ -480,11 +481,13 @@ fn main() {
                     println!("YO DO NOTTTT CONSUME OJAY?!!?????????????!!!!!!!!!!!!!!!!!!!!!!!");
                     consu = false;
                 }
-                for i in 0..params.len() {
-                    if i < params.len() - 1 && i % 2 == 0 {
-                        let tmp = params[i + 1].clone();
-                        params[i + 1] = "%".to_string() + &*params[i];
-                        params[i] = tmp;
+                if tokens[i].text_if_applicable == "fn" {
+                    for i in 0..params.len() {
+                        if i < params.len() - 1 && i % 2 == 0 {
+                            let tmp = params[i + 1].clone();
+                            params[i + 1] = "%".to_string() + &*params[i];
+                            params[i] = tmp;
+                        }
                     }
                 }
                 println!("WHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA {}", tokens[i].text_if_applicable);
@@ -524,7 +527,11 @@ fn main() {
                 } else {
                     (TypeID::Ptr, string_to_fake_type(&*tokens[orig + cntr + 1].text_if_applicable).unwrap())
                 };
-            write.push_str(&*("define ".to_string() + &*fn_type + " @" + &*fn_name + "(" + &*params_str + ") {\n"));
+            if tokens[i].text_if_applicable == "fn" {
+                write.push_str(&*("define ".to_string() + &*fn_type + " @" + &*fn_name + "(" + &*params_str + ") {\n"));
+            } else {
+                write.push_str(&*("declare ".to_string() + &*fn_type + " @" + &*fn_name + "(" + &*params_str + ") {\n"));
+            }
             if string_to_fake_type(&*fn_type).is_none() {
                 println!("Error: output type of function `{}` is invalid", &*fn_name);
             }
