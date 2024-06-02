@@ -1,4 +1,6 @@
-fn fact inp i32 : i32 {
+/* MATH */
+
+fn factorial32 inp i32 : i32 {
     do
         ~inp 1 i32 == if
             1 i32 -> ret
@@ -9,7 +11,20 @@ fn fact inp i32 : i32 {
     ;
 }
 
-fn strcat inp1 i8^ inp2 i8^ : i8^ {
+fn factorial64 inp i64 : i64 {
+    do
+        ~inp 1 i64 == if
+            1 i64 -> ret
+        else
+            ~inp ~inp 1 i64 - fact * -> ret
+        endif
+        -1 i64 -> ret
+    ;
+}
+
+/* STRINGS */
+
+fn strcat inp1 char^ inp2 char^ : char^ {
     let end_of_inp1 : i32
 	let end_of_inp2 : i32
 
@@ -22,7 +37,7 @@ fn strcat inp1 i8^ inp2 i8^ : i8^ {
 	;
 	not_reached while
 		do
-			~inp1 cntr @ # 0 i8 == if
+			~inp1 cntr @ # 0 char == if
 				false -> not_reached
 			else
 				cntr 1 i32 + -> cntr
@@ -39,7 +54,7 @@ fn strcat inp1 i8^ inp2 i8^ : i8^ {
 	;
 	not_reached while
 		do
-			~inp2 cntr @ # 0 i8 == if
+			~inp2 cntr @ # 0 char == if
 				false -> not_reached
 			else
 				cntr 1 i32 + -> cntr
@@ -48,8 +63,8 @@ fn strcat inp1 i8^ inp2 i8^ : i8^ {
 	endwhile
 	do cntr -> end_of_inp2;
 
-    /* putting ~inp1 and ~inp2 into out */
-	let out : i8^
+    	/* putting ~inp1 and ~inp2 into out */
+	let out : char^
 	let cntr1 : i32
 	let cntr2 : i32
 	let not_yet_reached_inp1_end : bool
@@ -65,7 +80,7 @@ fn strcat inp1 i8^ inp2 i8^ : i8^ {
 	;
 	not_yet_reached_inp1_end while
 		do
-			~inp1 cntr1 @ # 0 i8 == if
+			~inp1 cntr1 @ # 0 char == if
 				false -> not_yet_reached_inp1_end
 			else
 				~inp1 cntr1 @ # out cntr1 @ <-
@@ -75,7 +90,7 @@ fn strcat inp1 i8^ inp2 i8^ : i8^ {
 	endwhile
 	not_yet_reached_inp2_end while
 		do
-			~inp2 cntr2 @ # 0 i8 == if
+			~inp2 cntr2 @ # 0 char == if
 				false -> not_yet_reached_inp2_end
 			else
 			endif

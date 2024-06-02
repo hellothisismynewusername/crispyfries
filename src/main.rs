@@ -840,7 +840,10 @@ fn main() {
                 } else { //it is binOp
                     if tokens[j].text_if_applicable == "+" {
                         let name = get_next_rand_string();
-                        println!("names len is {}", names.len());
+                        if names.len() < 2 {
+                            println!("Error: Not enough operands supplied to `+`");
+                            exit(1);
+                        }
                         let value_1 = names[names.len() - 2].clone();
                         let value_2 = names[names.len() - 1].clone();
 
@@ -855,8 +858,10 @@ fn main() {
                     }
                     if tokens[j].text_if_applicable == "-" {
                         let name = get_next_rand_string();
-                        println!("names len is {}", names.len());
-                        let value_1 = names[names.len() - 2].clone();
+                        if names.len() < 2 {
+                            println!("Error: Not enough operands supplied to `-`");
+                            exit(1);
+                        }                        let value_1 = names[names.len() - 2].clone();
                         let value_2 = names[names.len() - 1].clone();
 
                         write.push_str(&*("%".to_string() + &*name + " = sub "));
@@ -870,8 +875,10 @@ fn main() {
                     }
                     if tokens[j].text_if_applicable == "*" {
                         let name = get_next_rand_string();
-                        println!("names len is {}", names.len());
-                        let value_1 = names[names.len() - 2].clone();
+                        if names.len() < 2 {
+                            println!("Error: Not enough operands supplied to `*`");
+                            exit(1);
+                        }                        let value_1 = names[names.len() - 2].clone();
                         let value_2 = names[names.len() - 1].clone();
 
                         write.push_str(&*("%".to_string() + &*name + " = mul "));
@@ -885,8 +892,10 @@ fn main() {
                     }
                     if tokens[j].text_if_applicable == "/" {
                         let name = get_next_rand_string();
-                        println!("names len is {}", names.len());
-                        let value_1 = names[names.len() - 2].clone();
+                        if names.len() < 2 {
+                            println!("Error: Not enough operands supplied to `/`");
+                            exit(1);
+                        }                        let value_1 = names[names.len() - 2].clone();
                         let value_2 = names[names.len() - 1].clone();
 
                         write.push_str(&*("%".to_string() + &*name.to_string() + " = sdiv "));
@@ -900,8 +909,10 @@ fn main() {
                     }
                     if tokens[j].text_if_applicable == "rem" {
                         let name = get_next_rand_string();
-                        println!("names len is {}", names.len());
-                        let value_1 = names[names.len() - 2].clone();
+                        if names.len() < 2 {
+                            println!("Error: Not enough operands supplied to `rem`");
+                            exit(1);
+                        }                        let value_1 = names[names.len() - 2].clone();
                         let value_2 = names[names.len() - 1].clone();
 
                         write.push_str(&*("%".to_string() + &*name + " = srem " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
@@ -912,7 +923,10 @@ fn main() {
                     }
                     if tokens[j].text_if_applicable == "==" {
                         let name = get_next_rand_string();
-                        println!("== MENTIONED LESS GOOO is {}", names.len());
+                        if names.len() < 2 {
+                            println!("Error: Not enough operands supplied to `==`");
+                            exit(1);
+                        }
                         let value_1 = names[names.len() - 2].clone();
                         let value_2 = names[names.len() - 1].clone();
 
@@ -924,7 +938,10 @@ fn main() {
                     }
                     if tokens[j].text_if_applicable == "!=" {
                         let name = get_next_rand_string();
-                        println!("!= MENTIONED LESS GOOO is {}", names.len());
+                        if names.len() < 2 {
+                            println!("Error: Not enough operands supplied to `!=`");
+                            exit(1);
+                        }
                         let value_1 = names[names.len() - 2].clone();
                         let value_2 = names[names.len() - 1].clone();
 
@@ -936,6 +953,10 @@ fn main() {
                     }
                     if tokens[j].text_if_applicable == "&" {
                         let name = get_next_rand_string();
+                        if names.len() < 2 {
+                            println!("Error: Not enough operands supplied to `&`");
+                            exit(1);
+                        }
                         let value_1 = names[names.len() - 2].clone();
                         let value_2 = names[names.len() - 1].clone();
 
@@ -947,6 +968,10 @@ fn main() {
                     }
                     if tokens[j].text_if_applicable == "|" {
                         let name = get_next_rand_string();
+                        if names.len() < 2 {
+                            println!("Error: Not enough operands supplied to `|`");
+                            exit(1);
+                        }
                         let value_1 = names[names.len() - 2].clone();
                         let value_2 = names[names.len() - 1].clone();
 
@@ -958,6 +983,10 @@ fn main() {
                     }
                     if tokens[j].text_if_applicable == "<" {
                         let name = get_next_rand_string();
+                        if names.len() < 2 {
+                            println!("Error: Not enough operands supplied to `<`");
+                            exit(1);
+                        }
                         let value_1 = names[names.len() - 2].clone();
                         let value_2 = names[names.len() - 1].clone();
 
@@ -969,6 +998,10 @@ fn main() {
                     }
                     if tokens[j].text_if_applicable == "<=" {
                         let name = get_next_rand_string();
+                        if names.len() < 2 {
+                            println!("Error: Not enough operands supplied to `<=`");
+                            exit(1);
+                        }
                         let value_1 = names[names.len() - 2].clone();
                         let value_2 = names[names.len() - 1].clone();
 
@@ -980,6 +1013,10 @@ fn main() {
                     }
                     if tokens[j].text_if_applicable == ">" {
                         let name = get_next_rand_string();
+                        if names.len() < 2 {
+                            println!("Error: Not enough operands supplied to `>`");
+                            exit(1);
+                        }
                         let value_1 = names[names.len() - 2].clone();
                         let value_2 = names[names.len() - 1].clone();
 
@@ -991,6 +1028,10 @@ fn main() {
                     }
                     if tokens[j].text_if_applicable == ">=" {
                         let name = get_next_rand_string();
+                        if names.len() < 2 {
+                            println!("Error: Not enough operands supplied to `>=`");
+                            exit(1);
+                        }
                         let value_1 = names[names.len() - 2].clone();
                         let value_2 = names[names.len() - 1].clone();
 
