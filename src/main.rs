@@ -492,11 +492,21 @@ fn main() {
                 }
                 println!("WHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA {}", tokens[i].text_if_applicable);
                 print_string_vec(&params);
-                for (i, p) in params.iter().enumerate() {
-                    if i % 2 == 0 && i > 0 {
-                        params_str.push_str(&*(", ".to_string() + &*p));
-                    } else {
-                        params_str.push_str(&*(" ".to_string() + &*p));
+                if tokens[i].text_if_applicable == "fn" {
+                    for (i, p) in params.iter().enumerate() {
+                        if i % 2 == 0 && i > 0 {
+                            params_str.push_str(&*(", ".to_string() + &*p));
+                        } else {
+                            params_str.push_str(&*(" ".to_string() + &*p));
+                        }
+                    }
+                } else {
+                    for (i, p) in params.iter().enumerate() {
+                        if i == 0 {
+                            params_str.push_str(&*p);
+                        } else {
+                            params_str.push_str(&*(", ".to_string() + &*p));
+                        }
                     }
                 }
                 if tokens[orig + cntr + 1].type_id == TypeID::Type || tokens[orig + cntr + 1].type_id == TypeID::Ptr {
@@ -529,13 +539,14 @@ fn main() {
                 };
             if tokens[i].text_if_applicable == "fn" {
                 write.push_str(&*("define ".to_string() + &*fn_type + " @" + &*fn_name + "(" + &*params_str + ") {\n"));
+                func_names.push((fn_name.clone(), params.len() / 2, consu, fn_actual_out_type_tuple));
             } else {
-                write.push_str(&*("declare ".to_string() + &*fn_type + " @" + &*fn_name + "(" + &*params_str + ") {\n"));
+                write.push_str(&*("declare ".to_string() + &*fn_type + " @" + &*fn_name + "(" + &*params_str + ")\n"));
+                func_names.push((fn_name.clone(), params.len(), consu, fn_actual_out_type_tuple));
             }
             if string_to_fake_type(&*fn_type).is_none() {
                 println!("Error: output type of function `{}` is invalid", &*fn_name);
             }
-            func_names.push((fn_name.clone(), params.len() / 2, consu, fn_actual_out_type_tuple));
             println!("made a function {}, {}, {}", &*fn_name, params.len() / 2, consu);
 
             if fn_type == "void" {
