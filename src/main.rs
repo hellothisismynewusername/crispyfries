@@ -1,4 +1,4 @@
-use std::any::Any;
+use std::process::Command;
 use std::cmp::PartialEq;
 use std::fs::File;
 use std::io::{Read, Write};
@@ -13,6 +13,8 @@ enum TypeID {
     I64,
     I8,
     I1,
+    F32,
+    F64,
     Void,
     BinaryOperator,
     Sentinel,
@@ -26,6 +28,7 @@ enum TypeID {
     VariableName,
     Ret,
     IntegerLiteral,
+    FloatLiteral,
     Do,
     RemoveMe,
     None,
@@ -207,6 +210,8 @@ fn main() {
         if put {
             if x.parse::<i64>().is_ok() {
                 Token::new_with_type_and_text(TypeID::IntegerLiteral, x)
+            } else if x.parse::<f64>().is_ok() {
+                Token::new_with_type_and_text(TypeID::FloatLiteral, x)
             } else {
                 match &*x {
                     "fn" | "dec" => Token::new_with_type_and_text(TypeID::FunctionDeclaration, x.clone()),
@@ -217,7 +222,7 @@ fn main() {
                     "if" => Token::new_with_type_and_text(TypeID::If, x.clone()),
                     "while" => Token::new_with_type_and_text(TypeID::While, x.clone()),
                     "ret" => Token::new_with_type(TypeID::Ret),
-                    "i32" | "i64" | "i8" | "i1" | "void" => Token::new_with_type_and_text(TypeID::Type, x.clone()),
+                    "i32" | "i64" | "i8" | "i1" | "void" | "f32" | "f64" => Token::new_with_type_and_text(TypeID::Type, x.clone()),
                     "^" => Token::new_with_type_and_text(TypeID::PtrNotation, x.clone()),
                     "malloc" => Token::new_with_type(TypeID::Malloc),
                     "free" => Token::new_with_type_and_text(TypeID::Simple, x.clone()),
@@ -280,15 +285,13 @@ fn main() {
                 }
                 if tokens[i - 1].type_id == TypeID::VariableDeclaration && tokens[i + 1].type_id == TypeID::Sentinel {
                     tokens[i].type_id = TypeID::VariableName;
-                    tokens[i].fake_type = if tokens[i + 2].text_if_applicable == type_as_string(&TypeID::I32) {
-                        TypeID::I32
-                    } else if tokens[i + 2].text_if_applicable == type_as_string(&TypeID::I64) {
-                        TypeID::I64
-                    } else if tokens[i + 2].text_if_applicable == type_as_string(&TypeID::I8) {
-                        TypeID::I8
-                    } else {
-                        TypeID::I1
-                    };
+                    tokens[i].fake_type =
+                        if string_to_fake_type(&*tokens[i + 2].text_if_applicable).is_some() {
+                            string_to_fake_type(&*tokens[i + 2].text_if_applicable).unwrap()
+                        } else {
+                            println!("Error: Invalid type for variable declaration");
+                            exit(1);
+                        };
                     println!("~ {}", type_as_string(&tokens[i + 2].type_id));
                     if tokens[i + 2].type_id == TypeID::Ptr {
                         var_names[scope_count].push((tokens[i].text_if_applicable.clone(), TypeID::Ptr, tokens[i].fake_type.clone()));
@@ -317,6 +320,10 @@ fn main() {
                 if tokens[i + 1].text_if_applicable == "i1" {
                     type_id = TypeID::I1;
                 }
+                tokens[i].fake_type = type_id;
+            }
+            if tokens[i].type_id == TypeID::FloatLiteral && tokens[i + 1].type_id == TypeID::Type {
+                let mut type_id = string_to_fake_type(&*tokens[i + 1].text_if_applicable).unwrap();
                 tokens[i].fake_type = type_id;
             }
         }
@@ -447,7 +454,11 @@ fn main() {
                         tmp_vars_cntr += 1;
                         for d in 0..ns.len() {
                             println!("{:?}, {}", tokens[i].text_if_applicable, i);
-                            tmp_vars[tmp_vars_cntr].push((ns[d].clone(), TypeID::IntegerLiteral, ts[d].0.clone(), ts[d].1.clone()));
+                            if ts[d].0 == TypeID::F32 || ts[d].0 == TypeID::F64 {
+                                tmp_vars[tmp_vars_cntr].push((ns[d].clone(), TypeID::FloatLiteral, ts[d].0.clone(), ts[d].1.clone()));
+                            } else {
+                                tmp_vars[tmp_vars_cntr].push((ns[d].clone(), TypeID::IntegerLiteral, ts[d].0.clone(), ts[d].1.clone()));
+                            }
                         }
                     } else {
                         tmp_vars.push(Vec::new());
@@ -486,8 +497,20 @@ fn main() {
                         if i < params.len() - 1 && i % 2 == 0 {
                             let tmp = params[i + 1].clone();
                             params[i + 1] = "%".to_string() + &*params[i];
-                            params[i] = tmp;
+                            params[i] = match &*tmp {
+                                "f32" => String::from("float"),
+                                "f64" => String::from("double"),
+                                _ => tmp
+                            };
                         }
+                    }
+                } else {
+                    for i in 0..params.len() {
+                        params[i] = match &*params[i] {
+                            "f32" => String::from("float"),
+                            "f64" => String::from("double"),
+                            _ => params[i].clone()
+                        };
                     }
                 }
                 println!("WHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA {}", tokens[i].text_if_applicable);
@@ -509,27 +532,20 @@ fn main() {
                         }
                     }
                 }
-                if tokens[orig + cntr + 1].type_id == TypeID::Type || tokens[orig + cntr + 1].type_id == TypeID::Ptr {
-                    if tokens[orig + cntr + 1].type_id == TypeID::Ptr {
-                        fn_type = String::from("ptr");
-                    } else {
-                        fn_type = tokens[orig + cntr + 1].text_if_applicable.clone();
-                    }
+            }
+            if tokens[orig + cntr + 1].type_id == TypeID::Type || tokens[orig + cntr + 1].type_id == TypeID::Ptr {
+                if tokens[orig + cntr + 1].type_id == TypeID::Ptr {
+                    fn_type = String::from("ptr");
                 } else {
-                    println!("Error: Return type not specified for function `{}`", &*fn_name);
-                    exit(1);
+                    fn_type = match &*tokens[orig + cntr + 1].text_if_applicable {
+                        "f32" => String::from("float"),
+                        "f64" => String::from("double"),
+                        _ => tokens[orig + cntr + 1].text_if_applicable.clone()
+                    };
                 }
             } else {
-                if tokens[orig + cntr + 1].type_id == TypeID::Type || tokens[orig + cntr + 1].type_id == TypeID::Ptr {
-                    if tokens[orig + cntr + 1].type_id == TypeID::Ptr {
-                        fn_type = String::from("ptr");
-                    } else {
-                        fn_type = tokens[orig + cntr + 1].text_if_applicable.clone();
-                    }
-                } else {
-                    println!("Error: Return type not specified for function `{}`", &*fn_name);
-                    exit(1);
-                }
+                println!("Error: Return type not specified for function `{}`", &*fn_name);
+                exit(1);
             }
             fn_actual_out_type_tuple =
                 if tokens[orig + cntr + 1].type_id == TypeID::Type {
@@ -558,7 +574,11 @@ fn main() {
             let var_name = tokens[i + 1].text_if_applicable.clone();
             let mut var_type = "NotAType".to_string();
             if tokens[i + 3].type_id == TypeID::Type {
-                var_type = tokens[i + 3].text_if_applicable.clone();
+                var_type = match &*tokens[i + 3].text_if_applicable {
+                    "f32" => String::from("float"),
+                    "f64" => String::from("double"),
+                    _ => tokens[i + 3].text_if_applicable.clone()
+                };
             }
             if tokens[i + 3].type_id == TypeID::Ptr {
                 var_type = "ptr".to_string();
@@ -664,7 +684,11 @@ fn main() {
                                 if output_type.0 == TypeID::Ptr {
                                     names.push((out_name.clone(), TypeID::IntegerLiteral, TypeID::Ptr, output_type.1.clone()));
                                 } else {
-                                    names.push((out_name.clone(), TypeID::IntegerLiteral, output_type.0.clone(), TypeID::None));
+                                    if output_type.0 == TypeID::F32 || output_type.0 == TypeID::F64 {
+                                        names.push((out_name.clone(), TypeID::FloatLiteral, output_type.0.clone(), TypeID::None));
+                                    } else {
+                                        names.push((out_name.clone(), TypeID::IntegerLiteral, output_type.0.clone(), TypeID::None));
+                                    }
                                 }
                             }
                         }
@@ -811,22 +835,24 @@ fn main() {
                             }
                         }
                     } else {
-                        if tokens[j].type_id == TypeID::IntegerLiteral {
+                        if tokens[j].type_id == TypeID::IntegerLiteral || tokens[j].type_id == TypeID::FloatLiteral {
                             let name = get_next_rand_string();
                             names.push((name.clone(), tokens[j].type_id.clone(), tokens[j].fake_type.clone(), TypeID::None));
                             println!("I pushed a {} which is a {} but actually {}", &name, type_as_string(&tokens[j].type_id), type_as_string(&tokens[j].fake_type));
-                            if tokens[j].fake_type == TypeID::I32 {
-                                write.push_str(&*("%".to_string() + &*name + " = add i32 " + &*tokens[j].i32_if_applicable.to_string() + ", 0\n"));
-                            }
-                            if tokens[j].fake_type == TypeID::I64 {
-                                write.push_str(&*("%".to_string() + &*name + " = add i64 " + &*tokens[j].i64_if_applicable.to_string() + ", 0\n"));
-                            }
-                            if tokens[j].fake_type == TypeID::I8 {
-                                write.push_str(&*("%".to_string() + &*name + " = add i8 " + &*tokens[j].i8_if_applicable.to_string() + ", 0\n"));
-                            }
-                            if tokens[j].fake_type == TypeID::I1 {
-                                write.push_str(&*("%".to_string() + &*name + " = add i1 " + &*tokens[j].text_if_applicable + ", 0\n"));
-                            }
+                            let str = match tokens[j].fake_type {
+                                TypeID::I32 => "%".to_string() + &*name + " = add i32 " + &*tokens[j].i32_if_applicable.to_string() + ", 0\n",
+                                TypeID::I64 => "%".to_string() + &*name + " = add i64 " + &*tokens[j].i64_if_applicable.to_string() + ", 0\n",
+                                TypeID::I8 => "%".to_string() + &*name + " = add i64 " + &*tokens[j].i64_if_applicable.to_string() + ", 0\n",
+                                TypeID::I1 => "%".to_string() + &*name + " = add i1 " + &*tokens[j].text_if_applicable + ", 0\n",
+                                TypeID::F32 => {
+                                    let tmp_name = get_next_rand_string();
+                                    write.push_str(&*("%".to_string() + &*tmp_name + " = fadd double " + &*tokens[j].text_if_applicable + ", 0.0\n"));
+                                    "%".to_string() + &*name + " = fptrunc double %" + &*tmp_name + " to float\n"
+                                },
+                                TypeID::F64 => "%".to_string() + &*name + " = fadd double " + &*tokens[j].text_if_applicable + ", 0.0\n",
+                                _ => "%".to_string() + &*name + " = add i32 " + &*tokens[j].i32_if_applicable.to_string() + ", 0\n"             //TODO: might wanna Option<> this stuff
+                            };
+                            write.push_str(&*str);
                         } else if tokens[j].type_id == TypeID::VariableName {
                             let name = get_next_rand_string();
                             if tokens[j].fake_type == TypeID::Ptr {
@@ -834,7 +860,11 @@ fn main() {
                             } else {
                                 write.push_str(&*("%".to_string() + &*name + " = load " + type_as_string(&tokens[j].fake_type) + ", " + type_as_string(&tokens[j].fake_type) + "* %" + &*tokens[j].text_if_applicable + "\n"));
                             }
-                            names.push((name.clone(), TypeID::IntegerLiteral, tokens[j].fake_type.clone(), tokens[j].second_fake_type.clone()));
+                            if tokens[j].fake_type == TypeID::F32 || tokens[j].fake_type == TypeID::F64 {
+                                names.push((name.clone(), TypeID::FloatLiteral, tokens[j].fake_type.clone(), tokens[j].second_fake_type.clone()));
+                            } else {
+                                names.push((name.clone(), TypeID::IntegerLiteral, tokens[j].fake_type.clone(), tokens[j].second_fake_type.clone()));
+                            }
                         }
                     }
                 } else { //it is binOp
@@ -847,79 +877,137 @@ fn main() {
                         let value_1 = names[names.len() - 2].clone();
                         let value_2 = names[names.len() - 1].clone();
 
-                        write.push_str(&*("%".to_string() + &*name + " = add "));
-                        write.push_str(&*(type_as_string(&value_1.2).to_string() + " %" + &*(value_1.0)));
-                        write.push_str(&*(", %".to_string() + &*(value_2.0)));
-                        write.push_str("\n");
+                        if value_1.2 != value_2.2 && value_1.1 == value_2.1 {
+                            println!("Error: Incompatible types used in binary operator");
+                            exit(1);
+                        }
+                        if value_1.1 == TypeID::IntegerLiteral {
+                            println!("IJADFYAMIP I CAN TAKE IT ANYMORE");
+                            write.push_str(&*("%".to_string() + &*name.to_string() + " = add "));
+                            write.push_str(&*(type_as_string(&value_1.2).to_string() + " %" + &*(value_1.0)));
+                            write.push_str(&*(", %".to_string() + &*(value_2.0)));
+                            write.push_str("\n");
+                        } else {
+                            println!("i can indeed take it anymore");
+                            write.push_str(&*("%".to_string() + &*name.to_string() + " = fadd "));
+                            write.push_str(&*(type_as_string(&value_1.2).to_string() + " %" + &*(value_1.0)));
+                            write.push_str(&*(", %".to_string() + &*(value_2.0)));
+                            write.push_str("\n");
+                        }
 
                         names.pop();
                         names.pop();
-                        names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone(), TypeID::None));
+                        names.push((name.clone(), value_1.1, value_1.2.clone(), TypeID::None));
                     }
                     if tokens[j].text_if_applicable == "-" {
                         let name = get_next_rand_string();
                         if names.len() < 2 {
                             println!("Error: Not enough operands supplied to `-`");
                             exit(1);
-                        }                        let value_1 = names[names.len() - 2].clone();
+                        }
+                        let value_1 = names[names.len() - 2].clone();
                         let value_2 = names[names.len() - 1].clone();
 
-                        write.push_str(&*("%".to_string() + &*name + " = sub "));
-                        write.push_str(&*(type_as_string(&value_1.2).to_string() + " %" + &*(value_1.0)));
-                        write.push_str(&*(", %".to_string() + &*(value_2.0)));
-                        write.push_str("\n");
+                        if value_1.2 != value_2.2 && value_1.1 == value_2.1 {
+                            println!("Error: Incompatible types used in binary operator");
+                            exit(1);
+                        }
+                        if value_1.1 == TypeID::IntegerLiteral {
+                            write.push_str(&*("%".to_string() + &*name.to_string() + " = sub "));
+                            write.push_str(&*(type_as_string(&value_1.2).to_string() + " %" + &*(value_1.0)));
+                            write.push_str(&*(", %".to_string() + &*(value_2.0)));
+                            write.push_str("\n");
+                        } else {
+                            write.push_str(&*("%".to_string() + &*name.to_string() + " = fsub "));
+                            write.push_str(&*(type_as_string(&value_1.2).to_string() + " %" + &*(value_1.0)));
+                            write.push_str(&*(", %".to_string() + &*(value_2.0)));
+                            write.push_str("\n");
+                        }
 
                         names.pop();
                         names.pop();
-                        names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone(), TypeID::None));
+                        names.push((name.clone(), value_1.1, value_1.2.clone(), TypeID::None));
                     }
                     if tokens[j].text_if_applicable == "*" {
                         let name = get_next_rand_string();
                         if names.len() < 2 {
                             println!("Error: Not enough operands supplied to `*`");
                             exit(1);
-                        }                        let value_1 = names[names.len() - 2].clone();
+                        }
+                        let value_1 = names[names.len() - 2].clone();
                         let value_2 = names[names.len() - 1].clone();
 
-                        write.push_str(&*("%".to_string() + &*name + " = mul "));
-                        write.push_str(&*(type_as_string(&value_1.2).to_string() + " %" + &*(value_1.0)));
-                        write.push_str(&*(", %".to_string() + &*(value_2.0)));
-                        write.push_str("\n");
+                        if value_1.2 != value_2.2 && value_1.1 == value_2.1 {
+                            println!("Error: Incompatible types used in binary operator");
+                            exit(1);
+                        }
+                        if value_1.1 == TypeID::IntegerLiteral {
+                            write.push_str(&*("%".to_string() + &*name.to_string() + " = mul "));
+                            write.push_str(&*(type_as_string(&value_1.2).to_string() + " %" + &*(value_1.0)));
+                            write.push_str(&*(", %".to_string() + &*(value_2.0)));
+                            write.push_str("\n");
+                        } else {
+                            write.push_str(&*("%".to_string() + &*name.to_string() + " = fmul "));
+                            write.push_str(&*(type_as_string(&value_1.2).to_string() + " %" + &*(value_1.0)));
+                            write.push_str(&*(", %".to_string() + &*(value_2.0)));
+                            write.push_str("\n");
+                        }
 
                         names.pop();
                         names.pop();
-                        names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone(), TypeID::None));
+                        names.push((name.clone(), value_1.1, value_1.2.clone(), TypeID::None));
                     }
                     if tokens[j].text_if_applicable == "/" {
                         let name = get_next_rand_string();
                         if names.len() < 2 {
                             println!("Error: Not enough operands supplied to `/`");
                             exit(1);
-                        }                        let value_1 = names[names.len() - 2].clone();
+                        }
+                        let value_1 = names[names.len() - 2].clone();
                         let value_2 = names[names.len() - 1].clone();
 
-                        write.push_str(&*("%".to_string() + &*name.to_string() + " = sdiv "));
-                        write.push_str(&*(type_as_string(&value_1.2).to_string() + " %" + &*(value_1.0)));
-                        write.push_str(&*(", %".to_string() + &*(value_2.0)));
-                        write.push_str("\n");
+                        if value_1.2 != value_2.2 && value_1.1 == value_2.1 {
+                            println!("Error: Incompatible types used in binary operator");
+                            exit(1);
+                        }
+                        if value_1.1 == TypeID::IntegerLiteral {
+                            write.push_str(&*("%".to_string() + &*name.to_string() + " = sdiv "));
+                            write.push_str(&*(type_as_string(&value_1.2).to_string() + " %" + &*(value_1.0)));
+                            write.push_str(&*(", %".to_string() + &*(value_2.0)));
+                            write.push_str("\n");
+                        } else {
+                            write.push_str(&*("%".to_string() + &*name.to_string() + " = fdiv "));
+                            write.push_str(&*(type_as_string(&value_1.2).to_string() + " %" + &*(value_1.0)));
+                            write.push_str(&*(", %".to_string() + &*(value_2.0)));
+                            write.push_str("\n");
+                        }
 
                         names.pop();
                         names.pop();
-                        names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone(), TypeID::None));
+                        names.push((name.clone(), value_1.1, value_1.2.clone(), TypeID::None));
                     }
                     if tokens[j].text_if_applicable == "rem" {
                         let name = get_next_rand_string();
                         if names.len() < 2 {
                             println!("Error: Not enough operands supplied to `rem`");
                             exit(1);
-                        }                        let value_1 = names[names.len() - 2].clone();
+                        }
+                        let value_1 = names[names.len() - 2].clone();
                         let value_2 = names[names.len() - 1].clone();
 
-                        write.push_str(&*("%".to_string() + &*name + " = srem " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
+                        if value_1.2 != value_2.2 && value_1.1 == value_2.1 {
+                            println!("Error: Incompatible types used in binary operator");
+                            exit(1);
+                        }
+                        if value_1.1 == TypeID::IntegerLiteral {
+                            write.push_str(&*("%".to_string() + &*name + " = srem " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
+                        } else {
+                            write.push_str(&*("%".to_string() + &*name + " = frem " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
+                        }
 
                         names.pop();
                         names.pop();
-                        names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone(), TypeID::None));
+                        names.push((name.clone(), value_1.1, value_1.2.clone(), TypeID::None));
                     }
                     if tokens[j].text_if_applicable == "==" {
                         let name = get_next_rand_string();
@@ -930,11 +1018,19 @@ fn main() {
                         let value_1 = names[names.len() - 2].clone();
                         let value_2 = names[names.len() - 1].clone();
 
-                        write.push_str(&*("%".to_string() + &*name + " = icmp eq " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
+                        if value_1.2 != value_2.2 && value_1.1 == value_2.1 {
+                            println!("Error: Incompatible types used in binary operator");
+                            exit(1);
+                        }
+                        if value_1.1 == TypeID::IntegerLiteral {
+                            write.push_str(&*("%".to_string() + &*name + " = icmp eq " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
+                        } else {
+                            write.push_str(&*("%".to_string() + &*name + " = fcmp oeq " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
+                        }
 
                         names.pop();
                         names.pop();
-                        names.push((name.clone(), TypeID::IntegerLiteral, TypeID::I1, TypeID::None));
+                        names.push((name.clone(), value_1.1, TypeID::I1, TypeID::None));
                     }
                     if tokens[j].text_if_applicable == "!=" {
                         let name = get_next_rand_string();
@@ -945,11 +1041,18 @@ fn main() {
                         let value_1 = names[names.len() - 2].clone();
                         let value_2 = names[names.len() - 1].clone();
 
-                        write.push_str(&*("%".to_string() + &*name + " = icmp ne " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
-
+                        if value_1.2 != value_2.2 && value_1.1 == value_2.1 {
+                            println!("Error: Incompatible types used in binary operator");
+                            exit(1);
+                        }
+                        if value_1.1 == TypeID::IntegerLiteral {
+                            write.push_str(&*("%".to_string() + &*name + " = icmp ne " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
+                        } else {
+                            write.push_str(&*("%".to_string() + &*name + " = fcmp one " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
+                        }
                         names.pop();
                         names.pop();
-                        names.push((name.clone(), TypeID::IntegerLiteral, TypeID::I1, TypeID::None));
+                        names.push((name.clone(), value_1.1, TypeID::I1, TypeID::None));
                     }
                     if tokens[j].text_if_applicable == "&" {
                         let name = get_next_rand_string();
@@ -960,11 +1063,15 @@ fn main() {
                         let value_1 = names[names.len() - 2].clone();
                         let value_2 = names[names.len() - 1].clone();
 
+                        if value_1.2 != value_2.2 && value_1.1 == value_2.1 {
+                            println!("Error: Incompatible types used in binary operator");
+                            exit(1);
+                        }
                         write.push_str(&*("%".to_string() + &*name + " = and " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
 
                         names.pop();
                         names.pop();
-                        names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone(), TypeID::None));
+                        names.push((name.clone(), value_1.1, value_1.2.clone(), TypeID::None));
                     }
                     if tokens[j].text_if_applicable == "|" {
                         let name = get_next_rand_string();
@@ -979,7 +1086,7 @@ fn main() {
 
                         names.pop();
                         names.pop();
-                        names.push((name.clone(), TypeID::IntegerLiteral, value_1.2.clone(), TypeID::None));
+                        names.push((name.clone(), value_1.1, value_1.2.clone(), TypeID::None));
                     }
                     if tokens[j].text_if_applicable == "<" {
                         let name = get_next_rand_string();
@@ -990,11 +1097,19 @@ fn main() {
                         let value_1 = names[names.len() - 2].clone();
                         let value_2 = names[names.len() - 1].clone();
 
-                        write.push_str(&*("%".to_string() + &*name + " = icmp slt " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
+                        if value_1.2 != value_2.2 && value_1.1 == value_2.1 {
+                            println!("Error: Incompatible types used in binary operator");
+                            exit(1);
+                        }
+                        if value_1.1 == TypeID::IntegerLiteral {
+                            write.push_str(&*("%".to_string() + &*name + " = icmp slt " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
+                        } else {
+                            write.push_str(&*("%".to_string() + &*name + " = fcmp olt " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
+                        }
 
                         names.pop();
                         names.pop();
-                        names.push((name.clone(), TypeID::IntegerLiteral, TypeID::I1, TypeID::None));
+                        names.push((name.clone(), value_1.1, TypeID::I1, TypeID::None));
                     }
                     if tokens[j].text_if_applicable == "<=" {
                         let name = get_next_rand_string();
@@ -1005,11 +1120,19 @@ fn main() {
                         let value_1 = names[names.len() - 2].clone();
                         let value_2 = names[names.len() - 1].clone();
 
-                        write.push_str(&*("%".to_string() + &*name + " = icmp sle " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
+                        if value_1.2 != value_2.2 && value_1.1 == value_2.1 {
+                            println!("Error: Incompatible types used in binary operator");
+                            exit(1);
+                        }
+                        if value_1.1 == TypeID::IntegerLiteral {
+                            write.push_str(&*("%".to_string() + &*name + " = icmp sle " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
+                        } else {
+                            write.push_str(&*("%".to_string() + &*name + " = fcmp ole " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
+                        }
 
                         names.pop();
                         names.pop();
-                        names.push((name.clone(), TypeID::IntegerLiteral, TypeID::I1, TypeID::None));
+                        names.push((name.clone(), value_1.1, TypeID::I1, TypeID::None));
                     }
                     if tokens[j].text_if_applicable == ">" {
                         let name = get_next_rand_string();
@@ -1020,11 +1143,19 @@ fn main() {
                         let value_1 = names[names.len() - 2].clone();
                         let value_2 = names[names.len() - 1].clone();
 
-                        write.push_str(&*("%".to_string() + &*name + " = icmp sgt " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
+                        if value_1.2 != value_2.2 && value_1.1 == value_2.1 {
+                            println!("Error: Incompatible types used in binary operator");
+                            exit(1);
+                        }
+                        if value_1.1 == TypeID::IntegerLiteral {
+                            write.push_str(&*("%".to_string() + &*name + " = icmp sgt " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
+                        } else {
+                            write.push_str(&*("%".to_string() + &*name + " = fcmp ogt " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
+                        }
 
                         names.pop();
                         names.pop();
-                        names.push((name.clone(), TypeID::IntegerLiteral, TypeID::I1, TypeID::None));
+                        names.push((name.clone(), value_1.1, TypeID::I1, TypeID::None));
                     }
                     if tokens[j].text_if_applicable == ">=" {
                         let name = get_next_rand_string();
@@ -1035,11 +1166,19 @@ fn main() {
                         let value_1 = names[names.len() - 2].clone();
                         let value_2 = names[names.len() - 1].clone();
 
-                        write.push_str(&*("%".to_string() + &*name + " = icmp sge " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
+                        if value_1.2 != value_2.2 && value_1.1 == value_2.1 {
+                            println!("Error: Incompatible types used in binary operator");
+                            exit(1);
+                        }
+                        if value_1.1 == TypeID::IntegerLiteral {
+                            write.push_str(&*("%".to_string() + &*name + " = icmp sge " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
+                        } else {
+                            write.push_str(&*("%".to_string() + &*name + " = fcmp oge " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
+                        }
 
                         names.pop();
                         names.pop();
-                        names.push((name.clone(), TypeID::IntegerLiteral, TypeID::I1, TypeID::None));
+                        names.push((name.clone(), value_1.1, TypeID::I1, TypeID::None));
                     }
                 }
             }
@@ -1124,6 +1263,8 @@ fn type_as_string(inp : &TypeID) -> &str {
         TypeID::I64 => "i64",
         TypeID::I8 => "i8",
         TypeID::I1 => "i1",
+        TypeID::F32 => "float",
+        TypeID::F64 => "double",
         TypeID::Void => "void",
         TypeID::Ret => "Ret",
         TypeID::Operator => "Operator",
@@ -1144,6 +1285,8 @@ fn string_to_fake_type(inp : &str) -> Option<TypeID> {
         "i64" => Some(TypeID::I64),
         "i8" => Some(TypeID::I8),
         "i1" => Some(TypeID::I1),
+        "f32" | "float" => Some(TypeID::F32),
+        "f64" | "double" => Some(TypeID::F64),
         "void" => Some(TypeID::Void),
         _ => None
     }
