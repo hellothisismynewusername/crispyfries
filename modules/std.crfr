@@ -63,7 +63,7 @@ fn strcat inp1 char^ inp2 char^ : char^ {
 	endwhile
 	do cntr -> end_of_inp2;
 
-    	/* putting ~inp1 and ~inp2 into out */
+    /* putting ~inp1 and ~inp2 into out */
 	let out : char^
 	let cntr1 : i32
 	let cntr2 : i32

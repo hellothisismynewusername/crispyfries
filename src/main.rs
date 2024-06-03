@@ -247,7 +247,9 @@ fn main() {
     while i < tokens.len() {
         if tokens[i].type_id == TypeID::RemoveMe {
             tokens.remove(i);
-            i -= 1;
+            if i > 0 {
+                i -= 1;
+            }
             print!("removed smthn");
         }
         i += 1;
