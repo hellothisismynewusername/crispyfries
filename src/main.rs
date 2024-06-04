@@ -810,7 +810,7 @@ fn main() {
                     if tokens[j + 1].type_id == TypeID::Ret {
                         write.push_str(&*("ret ".to_string() + type_as_string(&top.2) + " %" + &*top.0 + "\n"));
                     } else {
-                        if tokens[j - 1].fake_type == TypeID::Ptr {
+                        if top.1 == TypeID::Ptr {
                             write.push_str(&*("store ptr %".to_string() + &*top.0 + ", ptr %" + &*tokens[j + 1].text_if_applicable + "\n"));
                         } else {
                             write.push_str(&*("store ".to_string() + type_as_string(&top.2) + " %" + &*top.0 + ", " + type_as_string(&tokens[j + 1].fake_type) + "* %" + &*tokens[j + 1].text_if_applicable + "\n"));

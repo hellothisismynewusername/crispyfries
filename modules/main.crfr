@@ -1,0 +1,7 @@
+dec factorial32 i32 : i32
+dec itostr32 i32 : char^
+
+
+fn main : void {
+	do 12000 i32 fact32 itostr32 puts free;
+}
