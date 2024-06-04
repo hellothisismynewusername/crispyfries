@@ -1,4 +1,4 @@
-/* MATH */
+/* ---- MATH ---- */
 
 fn factorial32 inp i32 : i32 {
     do
@@ -22,7 +22,103 @@ fn factorial64 inp i64 : i64 {
     ;
 }
 
-/* STRINGS */
+/* ---- STRINGS AND CHARS ---- */
+
+fn itoc32 inp0 i32 : char {
+    let outpu : char
+    do
+        ~inp0 0 i32 == if
+            '0' -> outpu
+        else
+        endif
+        ~inp0 1 i32 == if
+            '1' -> outpu
+        else
+        endif
+        ~inp0 2 i32 == if
+            '2' -> outpu
+        else
+        endif
+        ~inp0 3 i32 == if
+            '3' -> outpu
+        else
+        endif
+        ~inp0 4 i32 == if
+            '4' -> outpu
+        else
+        endif
+        ~inp0 5 i32 == if
+            '5' -> outpu
+        else
+        endif
+        ~inp0 6 i32 == if
+            '6' -> outpu
+        else
+        endif
+        ~inp0 7 i32 == if
+            '7' -> outpu
+        else
+        endif
+        ~inp0 8 i32 == if
+            '8' -> outpu
+        else
+        endif
+        ~inp0 9 i32 == if
+            '9' -> outpu
+        else
+        endif
+
+        outpu -> ret
+    ;
+}
+
+fn itostr32 inp1 i32 : char^ {
+    let var : i32
+    let len : i32
+    let b : bool
+    let outp : char^
+    do
+        ~inp1 -> var
+        0 i32 -> len
+        true -> b
+    ;
+
+    /* getting len */
+    b while
+        do
+            var 0 i32 == if
+                false -> b
+            else
+                var 10 i32 / -> var
+                len 1 i32 + -> len
+            endif
+        ;
+    endwhile                                                                                                                                                                                                                                                                                                                                                          let var1 : i32                                                                                                                                                                   let b1 : bool
+    let cntr : i32
+    do
+        len 1 i32 + malloc -> outp
+        true -> b1
+        ~inp1 -> var1
+        len 1 i32 - -> cntr
+    ;
+    b1 while
+        do
+            var1 0 i32 == if
+                0 i8 outp len @ <-
+                false -> b1
+            else
+                var1 10 i32 rem itoc32
+                outp cntr @ <-
+
+                var1 10 i32 / -> var1
+                cntr 1 i32 - -> cntr
+            endif
+        ;
+    endwhile
+
+    do outp -> ret;
+}
+
 
 fn strcat inp1 char^ inp2 char^ : char^ {
     let end_of_inp1 : i32

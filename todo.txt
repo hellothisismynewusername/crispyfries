@@ -13,3 +13,5 @@ add these to epic programming guide:
 check if there's some operators that don't consume / should consume items.
 
 puts does not consume the last item. this is a feature, mention it.
+
+mention that you should never name your variables the same thing, even across functions, so linking seperate modules will be needed
