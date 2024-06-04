@@ -843,8 +843,8 @@ fn main() {
                             println!("I pushed a {} which is a {} but actually {}", &name, type_as_string(&tokens[j].type_id), type_as_string(&tokens[j].fake_type));
                             let str = match tokens[j].fake_type {
                                 TypeID::I32 => "%".to_string() + &*name + " = add i32 " + &*tokens[j].i32_if_applicable.to_string() + ", 0\n",
+                                TypeID::I8 => "%".to_string() + &*name + " = add i8 " + &*tokens[j].i8_if_applicable.to_string() + ", 0\n",
                                 TypeID::I64 => "%".to_string() + &*name + " = add i64 " + &*tokens[j].i64_if_applicable.to_string() + ", 0\n",
-                                TypeID::I8 => "%".to_string() + &*name + " = add i64 " + &*tokens[j].i64_if_applicable.to_string() + ", 0\n",
                                 TypeID::I1 => "%".to_string() + &*name + " = add i1 " + &*tokens[j].text_if_applicable + ", 0\n",
                                 TypeID::F32 => {
                                     let tmp_name = get_next_rand_string();
@@ -883,7 +883,7 @@ fn main() {
                             println!("Error: Incompatible types used in binary operator");
                             exit(1);
                         }
-                        if value_1.1 == TypeID::IntegerLiteral {
+                        if fake_is_int(&value_1.2) {
                             println!("IJADFYAMIP I CAN TAKE IT ANYMORE");
                             write.push_str(&*("%".to_string() + &*name.to_string() + " = add "));
                             write.push_str(&*(type_as_string(&value_1.2).to_string() + " %" + &*(value_1.0)));
@@ -914,7 +914,7 @@ fn main() {
                             println!("Error: Incompatible types used in binary operator");
                             exit(1);
                         }
-                        if value_1.1 == TypeID::IntegerLiteral {
+                        if fake_is_int(&value_1.2) {
                             write.push_str(&*("%".to_string() + &*name.to_string() + " = sub "));
                             write.push_str(&*(type_as_string(&value_1.2).to_string() + " %" + &*(value_1.0)));
                             write.push_str(&*(", %".to_string() + &*(value_2.0)));
@@ -943,7 +943,7 @@ fn main() {
                             println!("Error: Incompatible types used in binary operator");
                             exit(1);
                         }
-                        if value_1.1 == TypeID::IntegerLiteral {
+                        if fake_is_int(&value_1.2) {
                             write.push_str(&*("%".to_string() + &*name.to_string() + " = mul "));
                             write.push_str(&*(type_as_string(&value_1.2).to_string() + " %" + &*(value_1.0)));
                             write.push_str(&*(", %".to_string() + &*(value_2.0)));
@@ -972,7 +972,7 @@ fn main() {
                             println!("Error: Incompatible types used in binary operator");
                             exit(1);
                         }
-                        if value_1.1 == TypeID::IntegerLiteral {
+                        if fake_is_int(&value_1.2) {
                             write.push_str(&*("%".to_string() + &*name.to_string() + " = sdiv "));
                             write.push_str(&*(type_as_string(&value_1.2).to_string() + " %" + &*(value_1.0)));
                             write.push_str(&*(", %".to_string() + &*(value_2.0)));
@@ -1001,7 +1001,7 @@ fn main() {
                             println!("Error: Incompatible types used in binary operator");
                             exit(1);
                         }
-                        if value_1.1 == TypeID::IntegerLiteral {
+                        if fake_is_int(&value_1.2) {
                             write.push_str(&*("%".to_string() + &*name + " = srem " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
                         } else {
                             write.push_str(&*("%".to_string() + &*name + " = frem " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
@@ -1024,7 +1024,7 @@ fn main() {
                             println!("Error: Incompatible types used in binary operator");
                             exit(1);
                         }
-                        if value_1.1 == TypeID::IntegerLiteral {
+                        if fake_is_int(&value_1.2) {
                             write.push_str(&*("%".to_string() + &*name + " = icmp eq " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
                         } else {
                             write.push_str(&*("%".to_string() + &*name + " = fcmp oeq " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
@@ -1047,7 +1047,7 @@ fn main() {
                             println!("Error: Incompatible types used in binary operator");
                             exit(1);
                         }
-                        if value_1.1 == TypeID::IntegerLiteral {
+                        if fake_is_int(&value_1.2) {
                             write.push_str(&*("%".to_string() + &*name + " = icmp ne " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
                         } else {
                             write.push_str(&*("%".to_string() + &*name + " = fcmp one " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
@@ -1103,7 +1103,7 @@ fn main() {
                             println!("Error: Incompatible types used in binary operator");
                             exit(1);
                         }
-                        if value_1.1 == TypeID::IntegerLiteral {
+                        if fake_is_int(&value_1.2) {
                             write.push_str(&*("%".to_string() + &*name + " = icmp slt " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
                         } else {
                             write.push_str(&*("%".to_string() + &*name + " = fcmp olt " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
@@ -1126,7 +1126,7 @@ fn main() {
                             println!("Error: Incompatible types used in binary operator");
                             exit(1);
                         }
-                        if value_1.1 == TypeID::IntegerLiteral {
+                        if fake_is_int(&value_1.2) {
                             write.push_str(&*("%".to_string() + &*name + " = icmp sle " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
                         } else {
                             write.push_str(&*("%".to_string() + &*name + " = fcmp ole " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
@@ -1149,7 +1149,7 @@ fn main() {
                             println!("Error: Incompatible types used in binary operator");
                             exit(1);
                         }
-                        if value_1.1 == TypeID::IntegerLiteral {
+                        if fake_is_int(&value_1.2) {
                             write.push_str(&*("%".to_string() + &*name + " = icmp sgt " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
                         } else {
                             write.push_str(&*("%".to_string() + &*name + " = fcmp ogt " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
@@ -1172,7 +1172,7 @@ fn main() {
                             println!("Error: Incompatible types used in binary operator");
                             exit(1);
                         }
-                        if value_1.1 == TypeID::IntegerLiteral {
+                        if fake_is_int(&value_1.2) {
                             write.push_str(&*("%".to_string() + &*name + " = icmp sge " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
                         } else {
                             write.push_str(&*("%".to_string() + &*name + " = fcmp oge " + type_as_string(&value_1.2) + " %" + &*(value_1.0) + ", %" + &*(value_2.0) + "\n"));
@@ -1220,6 +1220,23 @@ fn get_next_rand_string() -> String {
         out.insert(0, 'a');
     }
     out
+}
+
+fn fake_is_int(inp : &TypeID) -> bool {
+    match *inp {
+        TypeID::I32 => true,
+        TypeID::I64 => true,
+        TypeID::I8 => true,
+        _ => false
+    }
+}
+
+fn fake_is_float(inp : &TypeID) -> bool {
+    match *inp {
+        TypeID::F32 => true,
+        TypeID::F64 => true,
+        _ => false
+    }
 }
 
 // I32,
