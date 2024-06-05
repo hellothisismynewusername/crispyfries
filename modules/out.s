@@ -1,406 +1,470 @@
 	.text
+	.def	 @feat.00;
+	.scl	3;
+	.type	0;
+	.endef
+	.globl	@feat.00
+.set @feat.00, 0
 	.file	"out.ll"
-	.globl	factorial32                     // -- Begin function factorial32
-	.p2align	2
-	.type	factorial32,@function
-factorial32:                            // @factorial32
-	.cfi_startproc
-// %bb.0:                               // %common.ret
-	subs	w8, w0, #1
-	mul	w8, w0, w8
-	csinc	w0, w8, wzr, ne
-	ret
-.Lfunc_end0:
-	.size	factorial32, .Lfunc_end0-factorial32
-	.cfi_endproc
-                                        // -- End function
-	.globl	factorial64                     // -- Begin function factorial64
-	.p2align	2
-	.type	factorial64,@function
-factorial64:                            // @factorial64
-	.cfi_startproc
-// %bb.0:                               // %common.ret
-	subs	x8, x0, #1
-	mul	x8, x0, x8
-	csinc	x0, x8, xzr, ne
-	ret
-.Lfunc_end1:
-	.size	factorial64, .Lfunc_end1-factorial64
-	.cfi_endproc
-                                        // -- End function
-	.globl	itoc32                          // -- Begin function itoc32
-	.p2align	2
-	.type	itoc32,@function
-itoc32:                                 // @itoc32
-	.cfi_startproc
-// %bb.0:
-	sub	sp, sp, #16
-	.cfi_def_cfa_offset 16
-	cbz	w0, .LBB2_12
-// %bb.1:                               // %pufGkOTUraylyJHdo15C7im3p6tJKC
-	cmp	w0, #1
-	b.eq	.LBB2_13
-.LBB2_2:                                // %FJLgefNbiVfUAv8B9UL4pNbyN8MK86
-	cmp	w0, #2
-	b.eq	.LBB2_14
-.LBB2_3:                                // %a1nSABYqyGqg9STC7Du9eHMm3FJKlw
-	cmp	w0, #3
-	b.eq	.LBB2_15
-.LBB2_4:                                // %omfvy0kXWq6NkgRBbAw8iJt1HKoXQh
-	cmp	w0, #4
-	b.eq	.LBB2_16
-.LBB2_5:                                // %nyeseJFjixWOvaKuh2WfomPldZftuY
-	cmp	w0, #5
-	b.eq	.LBB2_17
-.LBB2_6:                                // %ZrljYxgqMHKbjmewAzaSGcu5mc7BlP
-	cmp	w0, #6
-	b.eq	.LBB2_18
-.LBB2_7:                                // %aiPnXlDBtKDHSFPnca0newIBOzEmsN
-	cmp	w0, #7
-	b.eq	.LBB2_19
-.LBB2_8:                                // %pcOuDcUryjKWcZlAhrQqqysw0cs8o7
-	cmp	w0, #8
-	b.eq	.LBB2_20
-.LBB2_9:                                // %aKwbcP0rq07ngskeH1uvsi99fOFtXQ
-	cmp	w0, #9
-	b.ne	.LBB2_11
-.LBB2_10:                               // %ar4bddmsmPL7zRjYV7F4ZWJtPLC8jb
-	mov	w8, #57
-	strb	w8, [sp, #12]
-.LBB2_11:                               // %V4vM6dVF0yRapbpJJiGoJxsoEZ8FD7
-	ldrb	w0, [sp, #12]
-	add	sp, sp, #16
-	ret
-.LBB2_12:                               // %ucRHB0PTG8zTPveW0cm1uIfdcbwetq
-	mov	w8, #48
-	strb	w8, [sp, #12]
-	cmp	w0, #1
-	b.ne	.LBB2_2
-.LBB2_13:                               // %a5F4fS6ExX0InxPbrQvK2RpdR9PNMa
-	mov	w8, #49
-	strb	w8, [sp, #12]
-	cmp	w0, #2
-	b.ne	.LBB2_3
-.LBB2_14:                               // %fLnVFMVTbMaAIIcVfG9LlQw9boDhgH
-	mov	w8, #50
-	strb	w8, [sp, #12]
-	cmp	w0, #3
-	b.ne	.LBB2_4
-.LBB2_15:                               // %rJNnjk51wgI8xEmbwZP2OMrKYx0amc
-	mov	w8, #51
-	strb	w8, [sp, #12]
-	cmp	w0, #4
-	b.ne	.LBB2_5
-.LBB2_16:                               // %bcS2LIK7NyH1d1GizsAOD8Azp81uQ1
-	mov	w8, #52
-	strb	w8, [sp, #12]
-	cmp	w0, #5
-	b.ne	.LBB2_6
-.LBB2_17:                               // %kJoHfWKdGpIqIMGg96PS7cLc0y6rF9
-	mov	w8, #53
-	strb	w8, [sp, #12]
-	cmp	w0, #6
-	b.ne	.LBB2_7
-.LBB2_18:                               // %ACvTpYGSVZdnS9B0catZVRMsvc9tF8
-	mov	w8, #54
-	strb	w8, [sp, #12]
-	cmp	w0, #7
-	b.ne	.LBB2_8
-.LBB2_19:                               // %DD2jffsEDnctDKeOtvbhQnM3V6J15Z
-	mov	w8, #55
-	strb	w8, [sp, #12]
-	cmp	w0, #8
-	b.ne	.LBB2_9
-.LBB2_20:                               // %gYo23K5t2whtNNWbCgM69ewkeEDAXg
-	mov	w8, #56
-	strb	w8, [sp, #12]
-	cmp	w0, #9
-	b.eq	.LBB2_10
-	b	.LBB2_11
-.Lfunc_end2:
-	.size	itoc32, .Lfunc_end2-itoc32
-	.cfi_endproc
-                                        // -- End function
-	.globl	itostr32                        // -- Begin function itostr32
-	.p2align	2
-	.type	itostr32,@function
-itostr32:                               // @itostr32
-	.cfi_startproc
-// %bb.0:
-	stp	x29, x30, [sp, #-80]!           // 16-byte Folded Spill
-	.cfi_def_cfa_offset 80
-	stp	x26, x25, [sp, #16]             // 16-byte Folded Spill
-	stp	x24, x23, [sp, #32]             // 16-byte Folded Spill
-	stp	x22, x21, [sp, #48]             // 16-byte Folded Spill
-	stp	x20, x19, [sp, #64]             // 16-byte Folded Spill
-	mov	x29, sp
-	.cfi_def_cfa w29, 80
-	.cfi_offset w19, -8
-	.cfi_offset w20, -16
-	.cfi_offset w21, -24
-	.cfi_offset w22, -32
-	.cfi_offset w23, -40
-	.cfi_offset w24, -48
-	.cfi_offset w25, -56
-	.cfi_offset w26, -64
-	.cfi_offset w30, -72
-	.cfi_offset w29, -80
-	sub	sp, sp, #32
-	mov	w8, #26215
-	mov	w19, w0
-	mov	w9, #1
-	movk	w8, #26214, lsl #16
-	stp	wzr, w0, [x29, #-8]
-	sturb	w9, [x29, #-9]
-	b	.LBB3_2
-.LBB3_1:                                // %K8fEjhJ2XyiVuvTRBu7LCiJtq7q3PP
-                                        //   in Loop: Header=BB3_2 Depth=1
-	ldp	w10, w9, [x29, #-8]
-                                        // kill: def $w9 killed $w9 def $x9
-	sxtw	x9, w9
-	smull	x9, w9, w8
-	add	w10, w10, #1
-	lsr	x11, x9, #63
-	asr	x9, x9, #34
-	add	w9, w9, w11
-	stp	w10, w9, [x29, #-8]
-	ldurb	w9, [x29, #-9]
-	tbz	w9, #0, .LBB3_4
-.LBB3_2:                                // %AQzS9KPuhzWYpc6eF3lQM0UMCaRmOZ
-                                        // =>This Inner Loop Header: Depth=1
-	ldur	w9, [x29, #-4]
-	cbnz	w9, .LBB3_1
-// %bb.3:                               // %CDYPLIHVW19w0E6byW9fv8raunw22j
-                                        //   in Loop: Header=BB3_2 Depth=1
-	sturb	wzr, [x29, #-9]
-	ldurb	w9, [x29, #-9]
-	tbnz	w9, #0, .LBB3_2
-.LBB3_4:                                // %bPsq5A0G9QIiXGUzXDKZNy2EBeDjq8
-	mov	x25, sp
-	sub	x20, x25, #16
-	mov	sp, x20
-	mov	x23, sp
-	sub	x21, x23, #16
-	mov	sp, x21
-	mov	x26, sp
-	sub	x22, x26, #16
-	mov	sp, x22
-	ldur	w8, [x29, #-8]
-	add	w0, w8, #1
-	bl	malloc
-	mov	w8, #1
-	ldur	w9, [x29, #-8]
-	mov	w24, #10
-	stur	x0, [x29, #-24]
-	stur	w19, [x25, #-16]
-	sturb	w8, [x23, #-16]
-	mov	w23, #26215
-	sub	w8, w9, #1
-	movk	w23, #26214, lsl #16
-	stur	w8, [x26, #-16]
-	b	.LBB3_6
-.LBB3_5:                                // %PUCDwIEPDZ5tHDye4qDgDGtHbeewEo
-                                        //   in Loop: Header=BB3_6 Depth=1
-	ldrsw	x8, [x20]
-	smull	x9, w8, w23
-	lsr	x10, x9, #63
-	asr	x9, x9, #34
-	add	w9, w9, w10
-	msub	w0, w9, w24, w8
-	bl	itoc32
-	ldrsw	x8, [x20]
-	ldr	w10, [x22]
-	ldrsw	x9, [x22]
-	smull	x8, w8, w23
-	ldur	x12, [x29, #-24]
-	sub	w10, w10, #1
-	lsr	x11, x8, #63
-	asr	x8, x8, #34
-	add	w8, w8, w11
-	strb	w0, [x12, x9]
-	str	w10, [x22]
-	str	w8, [x20]
-	ldrb	w8, [x21]
-	tbz	w8, #0, .LBB3_8
-.LBB3_6:                                // %dUl27H53eqzWGGDHUMWBmoE4q2eYbW
-                                        // =>This Inner Loop Header: Depth=1
-	ldr	w8, [x20]
-	cbnz	w8, .LBB3_5
-// %bb.7:                               // %iaFivVZeXj8XAfGoI0jnjoz6BjYar6
-                                        //   in Loop: Header=BB3_6 Depth=1
-	ldursw	x8, [x29, #-8]
-	strb	wzr, [x21]
-	ldur	x9, [x29, #-24]
-	strb	wzr, [x9, x8]
-	ldrb	w8, [x21]
-	tbnz	w8, #0, .LBB3_6
-.LBB3_8:                                // %MWINi7nkjq0WjKRQAgIeboI3Zhvg0D
-	ldur	x0, [x29, #-24]
-	mov	sp, x29
-	ldp	x20, x19, [sp, #64]             // 16-byte Folded Reload
-	ldp	x22, x21, [sp, #48]             // 16-byte Folded Reload
-	ldp	x24, x23, [sp, #32]             // 16-byte Folded Reload
-	ldp	x26, x25, [sp, #16]             // 16-byte Folded Reload
-	ldp	x29, x30, [sp], #80             // 16-byte Folded Reload
-	ret
-.Lfunc_end3:
-	.size	itostr32, .Lfunc_end3-itostr32
-	.cfi_endproc
-                                        // -- End function
-	.globl	strcat                          // -- Begin function strcat
-	.p2align	2
-	.type	strcat,@function
-strcat:                                 // @strcat
-	.cfi_startproc
-// %bb.0:
-	stp	x29, x30, [sp, #-80]!           // 16-byte Folded Spill
-	.cfi_def_cfa_offset 80
-	stp	x26, x25, [sp, #16]             // 16-byte Folded Spill
-	stp	x24, x23, [sp, #32]             // 16-byte Folded Spill
-	stp	x22, x21, [sp, #48]             // 16-byte Folded Spill
-	stp	x20, x19, [sp, #64]             // 16-byte Folded Spill
-	mov	x29, sp
-	.cfi_def_cfa w29, 80
-	.cfi_offset w19, -8
-	.cfi_offset w20, -16
-	.cfi_offset w21, -24
-	.cfi_offset w22, -32
-	.cfi_offset w23, -40
-	.cfi_offset w24, -48
-	.cfi_offset w25, -56
-	.cfi_offset w26, -64
-	.cfi_offset w30, -72
-	.cfi_offset w29, -80
-	sub	sp, sp, #16
-	mov	x19, x1
-	mov	x20, x0
-	mov	w8, #1
-	stur	wzr, [x29, #-16]
-	sturb	w8, [x29, #-9]
-	b	.LBB4_2
-.LBB4_1:                                // %Q4fY2tFjj9XdhT0PL9B6XR1VsPt6dc
-                                        //   in Loop: Header=BB4_2 Depth=1
-	ldur	w8, [x29, #-16]
-	add	w8, w8, #1
-	stur	w8, [x29, #-16]
-	ldurb	w8, [x29, #-9]
-	tbz	w8, #0, .LBB4_4
-.LBB4_2:                                // %W7YODItusv2haIzN5x9QowX7WHIsEN
-                                        // =>This Inner Loop Header: Depth=1
-	ldursw	x8, [x29, #-16]
-	ldrb	w8, [x20, x8]
-	cbnz	w8, .LBB4_1
-// %bb.3:                               // %xNOK7JS7Ue49Xqn9IpOm4uV8Z1FP84
-                                        //   in Loop: Header=BB4_2 Depth=1
-	sturb	wzr, [x29, #-9]
-	ldurb	w8, [x29, #-9]
-	tbnz	w8, #0, .LBB4_2
-.LBB4_4:                                // %nmW9gee3GRfgFNIblhBnv9fqMLy4QF
-	ldur	w8, [x29, #-16]
-	mov	w9, #1
-	stur	wzr, [x29, #-16]
-	stur	w8, [x29, #-4]
-	sturb	w9, [x29, #-9]
-	b	.LBB4_6
-.LBB4_5:                                // %aeV74YNDGGDfx8NvnGaqqU659zC9Ef
-                                        //   in Loop: Header=BB4_6 Depth=1
-	ldur	w8, [x29, #-16]
-	add	w8, w8, #1
-	stur	w8, [x29, #-16]
-	ldurb	w8, [x29, #-9]
-	tbz	w8, #0, .LBB4_8
-.LBB4_6:                                // %V8piBDKlUSmVizhbowIPYgzhP29nT9
-                                        // =>This Inner Loop Header: Depth=1
-	ldursw	x8, [x29, #-16]
-	ldrb	w8, [x19, x8]
-	cbnz	w8, .LBB4_5
-// %bb.7:                               // %UuUNaTcSX0qlHF4KC7Rqz21nbHzTBU
-                                        //   in Loop: Header=BB4_6 Depth=1
-	sturb	wzr, [x29, #-9]
-	ldurb	w8, [x29, #-9]
-	tbnz	w8, #0, .LBB4_6
-.LBB4_8:                                // %aimGeWqTO1YJIN9HiNNTWgxui7d2Lx
-	mov	x26, sp
-	ldur	w8, [x29, #-16]
-	sub	x21, x26, #16
-	stur	w8, [x29, #-8]
-	mov	sp, x21
-	mov	x8, sp
-	sub	x24, x8, #16
-	mov	sp, x24
-	mov	x9, sp
-	sub	x22, x9, #16
-	mov	sp, x22
-	mov	x10, sp
-	sub	x25, x10, #16
-	mov	sp, x25
-	mov	x11, sp
-	sub	x23, x11, #16
-	mov	sp, x23
-	ldp	w13, w12, [x29, #-8]
-	stur	wzr, [x8, #-16]
-	mov	w14, #1
-	stur	wzr, [x9, #-16]
-	add	w8, w13, w12
-	sturb	w14, [x10, #-16]
-	add	w0, w8, #1
-	sturb	w14, [x11, #-16]
-	bl	malloc
-	stur	x0, [x26, #-16]
-	b	.LBB4_10
-.LBB4_9:                                // %L3IefQztlzDrmDM2OpjG5YazltCq0P
-                                        //   in Loop: Header=BB4_10 Depth=1
-	ldrsw	x8, [x24]
-	ldr	x10, [x21]
-	ldrb	w9, [x20, x8]
-	add	w11, w8, #1
-	strb	w9, [x10, x8]
-	str	w11, [x24]
-	ldrb	w8, [x25]
-	tbz	w8, #0, .LBB4_13
-.LBB4_10:                               // %DUGShcVKuFZ2cuzkwHhuw5vALdpCx8
-                                        // =>This Inner Loop Header: Depth=1
-	ldrsw	x8, [x24]
-	ldrb	w8, [x20, x8]
-	cbnz	w8, .LBB4_9
-// %bb.11:                              // %Me86HOLm8hS0U6oFsTPl4YEZDANfno
-                                        //   in Loop: Header=BB4_10 Depth=1
-	strb	wzr, [x25]
-	ldrb	w8, [x25]
-	tbnz	w8, #0, .LBB4_10
-	b	.LBB4_13
-.LBB4_12:                               // %AxUc48WmBibmjym9JMX2yTVAgcmASK
-                                        //   in Loop: Header=BB4_13 Depth=1
-	ldrsw	x8, [x22]
-	ldur	w9, [x29, #-4]
-	ldrb	w12, [x23]
-	ldrb	w11, [x19, x8]
-	add	w9, w8, w9
-	add	w8, w8, #1
-	ldr	x10, [x21]
-	strb	w11, [x10, w9, sxtw]
-	str	w8, [x22]
-	tbz	w12, #0, .LBB4_15
-.LBB4_13:                               // %CsLL0d35ksGydRCb4TFFF64W12IDcL
-                                        // =>This Inner Loop Header: Depth=1
-	ldrsw	x8, [x22]
-	ldrb	w8, [x19, x8]
-	cbnz	w8, .LBB4_12
-// %bb.14:                              // %uNpTPV57kynGIO6Gw2unJZ8jTLsKoQ
-                                        //   in Loop: Header=BB4_13 Depth=1
-	strb	wzr, [x23]
-	b	.LBB4_12
-.LBB4_15:                               // %aYSvp8qKYUaNzg8EbFJU2dsK0e5M1D
-	ldr	x0, [x21]
-	mov	sp, x29
-	ldp	x20, x19, [sp, #64]             // 16-byte Folded Reload
-	ldp	x22, x21, [sp, #48]             // 16-byte Folded Reload
-	ldp	x24, x23, [sp, #32]             // 16-byte Folded Reload
-	ldp	x26, x25, [sp, #16]             // 16-byte Folded Reload
-	ldp	x29, x30, [sp], #80             // 16-byte Folded Reload
-	ret
-.Lfunc_end4:
-	.size	strcat, .Lfunc_end4-strcat
-	.cfi_endproc
-                                        // -- End function
-	.section	".note.GNU-stack","",@progbits
+	.def	 factorial32;
+	.scl	2;
+	.type	32;
+	.endef
+	.globl	factorial32                     # -- Begin function factorial32
+	.p2align	4, 0x90
+factorial32:                            # @factorial32
+# %bb.0:
+                                        # kill: def $ecx killed $ecx def $rcx
+	cmpl	$1, %ecx
+	jne	.LBB0_2
+# %bb.1:                                # %YO2LwYAfSWumCzQ5aTGYu3be4x1nMk
+	movl	$1, %eax
+	retq
+.LBB0_2:                                # %Fq1YMJ2Tg1yJtP9jW23yZ33SfygvRH
+	leal	-1(%rcx), %eax
+	imull	%eax, %ecx
+	movl	%ecx, %eax
+	retq
+                                        # -- End function
+	.def	 factorial64;
+	.scl	2;
+	.type	32;
+	.endef
+	.globl	factorial64                     # -- Begin function factorial64
+	.p2align	4, 0x90
+factorial64:                            # @factorial64
+# %bb.0:
+	cmpq	$1, %rcx
+	jne	.LBB1_2
+# %bb.1:                                # %ig6I2ghy8FIKbvzSNbjdg3e3c55nxz
+	movl	$1, %eax
+	retq
+.LBB1_2:                                # %Pz4kXIx6nTNoGsD12KIvrLFUEjjVYa
+	leaq	-1(%rcx), %rax
+	imulq	%rcx, %rax
+	retq
+                                        # -- End function
+	.def	 itoc32;
+	.scl	2;
+	.type	32;
+	.endef
+	.globl	itoc32                          # -- Begin function itoc32
+	.p2align	4, 0x90
+itoc32:                                 # @itoc32
+.seh_proc itoc32
+# %bb.0:
+	pushq	%rax
+	.seh_stackalloc 8
+	.seh_endprologue
+	testl	%ecx, %ecx
+	je	.LBB2_1
+# %bb.2:                                # %TRkNHXsGuC2TeBK6ccEtGT5QBK7oLa
+	cmpl	$1, %ecx
+	je	.LBB2_3
+.LBB2_4:                                # %NQD0W6YQ4L6z5DVRsZwX0HB4JquGEP
+	cmpl	$2, %ecx
+	je	.LBB2_5
+.LBB2_6:                                # %be3C5igrmQpM3Q0cOnr8PwLR2xNG7R
+	cmpl	$3, %ecx
+	je	.LBB2_7
+.LBB2_8:                                # %k0nfcPhENHuiMyJbgmWYfUxzAA5QHp
+	cmpl	$4, %ecx
+	je	.LBB2_9
+.LBB2_10:                               # %cl2n0KHWUnediusQffbqV8EUEk5TQf
+	cmpl	$5, %ecx
+	je	.LBB2_11
+.LBB2_12:                               # %SLQbBgP2ndhIFDnJFSnjWjfI6Zkcng
+	cmpl	$6, %ecx
+	je	.LBB2_13
+.LBB2_14:                               # %P8Y8JDUErgOucv4BAQ6r26AYeEb7wV
+	cmpl	$7, %ecx
+	je	.LBB2_15
+.LBB2_16:                               # %Ik4O9Xwah9I4yn8qyn6oJgq7tz0Lqv
+	cmpl	$8, %ecx
+	je	.LBB2_17
+.LBB2_18:                               # %IOlyUjH9ZH3BB8jZWp84312pbDtgor
+	cmpl	$9, %ecx
+	jne	.LBB2_20
+.LBB2_19:                               # %rokvoat22EirMH21RIfMQj3ZQr0BpT
+	movb	$57, 7(%rsp)
+.LBB2_20:                               # %agclwJmPmL6ODHYjaN1NeFYfzfVlUo
+	movb	7(%rsp), %al
+	popq	%rcx
+	retq
+.LBB2_1:                                # %jzQflktNbnhmogGsaKv8hrmHjbSyFM
+	movb	$48, 7(%rsp)
+	cmpl	$1, %ecx
+	jne	.LBB2_4
+.LBB2_3:                                # %a80UDfM3eFgx36JvVvaNn0cQOR6asd
+	movb	$49, 7(%rsp)
+	cmpl	$2, %ecx
+	jne	.LBB2_6
+.LBB2_5:                                # %LQU6GN2i20yQ7iia32iRDx33KDZY6F
+	movb	$50, 7(%rsp)
+	cmpl	$3, %ecx
+	jne	.LBB2_8
+.LBB2_7:                                # %aIF2MeUraAT1BmLCzMGceIc8oRxGry
+	movb	$51, 7(%rsp)
+	cmpl	$4, %ecx
+	jne	.LBB2_10
+.LBB2_9:                                # %aMnVyx3Lpnel75F2W59nOf3q2YMFpc
+	movb	$52, 7(%rsp)
+	cmpl	$5, %ecx
+	jne	.LBB2_12
+.LBB2_11:                               # %jMYcL9NhAXs8XFSdSr50qdaUfmhzjF
+	movb	$53, 7(%rsp)
+	cmpl	$6, %ecx
+	jne	.LBB2_14
+.LBB2_13:                               # %aNUbKbSf7RRCngbMmpsjgGR18rkSSU
+	movb	$54, 7(%rsp)
+	cmpl	$7, %ecx
+	jne	.LBB2_16
+.LBB2_15:                               # %IqcwYoomkKyYnHOX52NYFgG96EN4OY
+	movb	$55, 7(%rsp)
+	cmpl	$8, %ecx
+	jne	.LBB2_18
+.LBB2_17:                               # %UE5gHfEr5vf9CcEt7exiO8rpcWLpdz
+	movb	$56, 7(%rsp)
+	cmpl	$9, %ecx
+	je	.LBB2_19
+	jmp	.LBB2_20
+	.seh_endproc
+                                        # -- End function
+	.def	 itostr32;
+	.scl	2;
+	.type	32;
+	.endef
+	.globl	itostr32                        # -- Begin function itostr32
+	.p2align	4, 0x90
+itostr32:                               # @itostr32
+.seh_proc itostr32
+# %bb.0:
+	pushq	%rbp
+	.seh_pushreg %rbp
+	pushq	%r14
+	.seh_pushreg %r14
+	pushq	%rsi
+	.seh_pushreg %rsi
+	pushq	%rdi
+	.seh_pushreg %rdi
+	pushq	%rbx
+	.seh_pushreg %rbx
+	subq	$32, %rsp
+	.seh_stackalloc 32
+	leaq	32(%rsp), %rbp
+	.seh_setframe %rbp, 32
+	.seh_endprologue
+	movl	%ecx, %r14d
+	movl	%ecx, -12(%rbp)
+	movl	$0, -8(%rbp)
+	movb	$1, -1(%rbp)
+	jmp	.LBB3_1
+	.p2align	4, 0x90
+.LBB3_3:                                # %uF97z8BoCQ5EwpPFJopHJDE0GDuSc1
+                                        #   in Loop: Header=BB3_1 Depth=1
+	movslq	-12(%rbp), %rax
+	imulq	$1717986919, %rax, %rax         # imm = 0x66666667
+	movq	%rax, %rcx
+	shrq	$63, %rcx
+	sarq	$34, %rax
+	addl	%ecx, %eax
+	movl	%eax, -12(%rbp)
+	incl	-8(%rbp)
+	cmpb	$0, -1(%rbp)
+	je	.LBB3_5
+.LBB3_1:                                # %aSiWxuH6LpPrLo96KPAlKEe0vfUnva
+                                        # =>This Inner Loop Header: Depth=1
+	cmpl	$0, -12(%rbp)
+	jne	.LBB3_3
+# %bb.2:                                # %FJiDeILoewSIC8qvo3IjAuk39dAI5y
+                                        #   in Loop: Header=BB3_1 Depth=1
+	movb	$0, -1(%rbp)
+	cmpb	$0, -1(%rbp)
+	jne	.LBB3_1
+.LBB3_5:                                # %o0qHhYbrLbn44Nq1K1G8aTQMcs3mfm
+	movl	$16, %eax
+	callq	__chkstk
+	subq	%rax, %rsp
+	movq	%rsp, %rdi
+	movl	$16, %eax
+	callq	__chkstk
+	subq	%rax, %rsp
+	movq	%rsp, %rbx
+	movl	$16, %eax
+	callq	__chkstk
+	subq	%rax, %rsp
+	movq	%rsp, %rsi
+	movl	-8(%rbp), %eax
+	incl	%eax
+	movslq	%eax, %rcx
+	subq	$32, %rsp
+	callq	malloc
+	addq	$32, %rsp
+	movq	%rax, -24(%rbp)
+	movb	$1, (%rbx)
+	movl	%r14d, (%rdi)
+	movl	-8(%rbp), %eax
+	decl	%eax
+	movl	%eax, (%rsi)
+	jmp	.LBB3_6
+	.p2align	4, 0x90
+.LBB3_8:                                # %YRkoOnwuFj5P3b5960a7LuiN9vMhrd
+                                        #   in Loop: Header=BB3_6 Depth=1
+	movslq	(%rdi), %rcx
+	imulq	$1717986919, %rcx, %rax         # imm = 0x66666667
+	movq	%rax, %rdx
+	shrq	$63, %rdx
+	sarq	$34, %rax
+	addl	%edx, %eax
+	addl	%eax, %eax
+	leal	(%rax,%rax,4), %eax
+	subl	%eax, %ecx
+	subq	$32, %rsp
+                                        # kill: def $ecx killed $ecx killed $rcx
+	callq	itoc32
+	addq	$32, %rsp
+	movq	-24(%rbp), %rcx
+	movslq	(%rsi), %rdx
+	movb	%al, (%rcx,%rdx)
+	movslq	(%rdi), %rax
+	imulq	$1717986919, %rax, %rax         # imm = 0x66666667
+	movq	%rax, %rcx
+	shrq	$63, %rcx
+	sarq	$34, %rax
+	addl	%ecx, %eax
+	movl	%eax, (%rdi)
+	decl	(%rsi)
+	cmpb	$0, (%rbx)
+	je	.LBB3_10
+.LBB3_6:                                # %e24CT2nBWJIxuxMg9FKLlb2TyXmOti
+                                        # =>This Inner Loop Header: Depth=1
+	cmpl	$0, (%rdi)
+	jne	.LBB3_8
+# %bb.7:                                # %ZKZ8OjS12YQosYTPIxJPI99wc02XHf
+                                        #   in Loop: Header=BB3_6 Depth=1
+	movq	-24(%rbp), %rax
+	movslq	-8(%rbp), %rcx
+	movb	$0, (%rax,%rcx)
+	movb	$0, (%rbx)
+	cmpb	$0, (%rbx)
+	jne	.LBB3_6
+.LBB3_10:                               # %qvMmQfhRAX0DHm6FuItDJYlyUdywQn
+	movq	-24(%rbp), %rax
+	movq	%rbp, %rsp
+	popq	%rbx
+	popq	%rdi
+	popq	%rsi
+	popq	%r14
+	popq	%rbp
+	retq
+	.seh_endproc
+                                        # -- End function
+	.def	 strlen32;
+	.scl	2;
+	.type	32;
+	.endef
+	.globl	strlen32                        # -- Begin function strlen32
+	.p2align	4, 0x90
+strlen32:                               # @strlen32
+.seh_proc strlen32
+# %bb.0:
+	pushq	%rax
+	.seh_stackalloc 8
+	.seh_endprologue
+	movb	$1, 3(%rsp)
+	movl	$0, 4(%rsp)
+	jmp	.LBB4_1
+	.p2align	4, 0x90
+.LBB4_3:                                # %KiBv18Ch68sUUtmyIbKC2wCZPPKBEU
+                                        #   in Loop: Header=BB4_1 Depth=1
+	incl	4(%rsp)
+	cmpb	$0, 3(%rsp)
+	je	.LBB4_5
+.LBB4_1:                                # %ejRgk28SWCeTKcHPQtrau9uavaEYhF
+                                        # =>This Inner Loop Header: Depth=1
+	movslq	4(%rsp), %rax
+	cmpb	$0, (%rcx,%rax)
+	jne	.LBB4_3
+# %bb.2:                                # %ZhMxfylJkVT8HFRxyugVpCk53cEp3u
+                                        #   in Loop: Header=BB4_1 Depth=1
+	movb	$0, 3(%rsp)
+	cmpb	$0, 3(%rsp)
+	jne	.LBB4_1
+.LBB4_5:                                # %VKpK5iiTeoAvrugfzlKmZ4I0NcmfNi
+	movl	4(%rsp), %eax
+	popq	%rcx
+	retq
+	.seh_endproc
+                                        # -- End function
+	.def	 strlen64;
+	.scl	2;
+	.type	32;
+	.endef
+	.globl	strlen64                        # -- Begin function strlen64
+	.p2align	4, 0x90
+strlen64:                               # @strlen64
+.seh_proc strlen64
+# %bb.0:
+	subq	$16, %rsp
+	.seh_stackalloc 16
+	.seh_endprologue
+	movb	$1, 7(%rsp)
+	movq	$0, 8(%rsp)
+	jmp	.LBB5_1
+	.p2align	4, 0x90
+.LBB5_3:                                # %aspl4mwKOH2iNZGpvBvXuOubLs9q5Z
+                                        #   in Loop: Header=BB5_1 Depth=1
+	incq	8(%rsp)
+	cmpb	$0, 7(%rsp)
+	je	.LBB5_5
+.LBB5_1:                                # %uvbWmUEVlW57AAn2bNCna7InEI4ItZ
+                                        # =>This Inner Loop Header: Depth=1
+	movq	8(%rsp), %rax
+	cmpb	$0, (%rcx,%rax)
+	jne	.LBB5_3
+# %bb.2:                                # %bX62APjaAQGc5SACwf58fvy2DgoWWT
+                                        #   in Loop: Header=BB5_1 Depth=1
+	movb	$0, 7(%rsp)
+	cmpb	$0, 7(%rsp)
+	jne	.LBB5_1
+.LBB5_5:                                # %aFzDN4oFEgqNiCKCwAxRNvetLeIeOb
+	movq	8(%rsp), %rax
+	addq	$16, %rsp
+	retq
+	.seh_endproc
+                                        # -- End function
+	.def	 strdup;
+	.scl	2;
+	.type	32;
+	.endef
+	.globl	strdup                          # -- Begin function strdup
+	.p2align	4, 0x90
+strdup:                                 # @strdup
+.seh_proc strdup
+# %bb.0:
+	pushq	%rsi
+	.seh_pushreg %rsi
+	subq	$64, %rsp
+	.seh_stackalloc 64
+	.seh_endprologue
+	movq	%rcx, %rsi
+	callq	strlen64
+	incq	%rax
+	movq	%rax, 56(%rsp)
+	movq	%rax, %rcx
+	callq	malloc
+	movq	%rax, 48(%rsp)
+	movb	$1, 39(%rsp)
+	movq	$0, 40(%rsp)
+	jmp	.LBB6_1
+	.p2align	4, 0x90
+.LBB6_3:                                # %BRTdkkuywPrU1PCStXO75lrzdCxH9C
+                                        #   in Loop: Header=BB6_1 Depth=1
+	movq	40(%rsp), %rax
+	movzbl	(%rsi,%rax), %ecx
+	movq	48(%rsp), %rdx
+	movb	%cl, (%rdx,%rax)
+	cmpb	$0, 39(%rsp)
+	je	.LBB6_5
+.LBB6_1:                                # %zEHnuDvfL05kZInZhyMI66Pw4Z0kby
+                                        # =>This Inner Loop Header: Depth=1
+	movq	40(%rsp), %rax
+	cmpq	56(%rsp), %rax
+	jne	.LBB6_3
+# %bb.2:                                # %otDI8qv60qH8Vcm9841TKq71PyKC7z
+                                        #   in Loop: Header=BB6_1 Depth=1
+	movb	$0, 39(%rsp)
+	cmpb	$0, 39(%rsp)
+	jne	.LBB6_1
+.LBB6_5:                                # %YYqQQklG0KPjQ4Rnmh85uolYCfHiyD
+	movq	48(%rsp), %rax
+	addq	$64, %rsp
+	popq	%rsi
+	retq
+	.seh_endproc
+                                        # -- End function
+	.def	 strcat;
+	.scl	2;
+	.type	32;
+	.endef
+	.globl	strcat                          # -- Begin function strcat
+	.p2align	4, 0x90
+strcat:                                 # @strcat
+.seh_proc strcat
+# %bb.0:
+	pushq	%rsi
+	.seh_pushreg %rsi
+	pushq	%rdi
+	.seh_pushreg %rdi
+	subq	$72, %rsp
+	.seh_stackalloc 72
+	.seh_endprologue
+	movq	%rdx, %rsi
+	movq	%rcx, %rdi
+	callq	strlen32
+	movl	%eax, 52(%rsp)
+	movq	%rsi, %rcx
+	callq	strlen32
+                                        # kill: def $eax killed $eax def $rax
+	movl	%eax, 68(%rsp)
+	movl	$0, 48(%rsp)
+	movl	$0, 44(%rsp)
+	movb	$1, 43(%rsp)
+	movb	$1, 42(%rsp)
+	movl	52(%rsp), %ecx
+	leal	1(%rax,%rcx), %eax
+	movslq	%eax, %rcx
+	callq	malloc
+	movq	%rax, 56(%rsp)
+	jmp	.LBB7_1
+	.p2align	4, 0x90
+.LBB7_3:                                # %aKC3pFwtTuWP4io7mzjw47jzGXRLYu
+                                        #   in Loop: Header=BB7_1 Depth=1
+	movslq	48(%rsp), %rax
+	movzbl	(%rdi,%rax), %ecx
+	movq	56(%rsp), %rdx
+	movb	%cl, (%rdx,%rax)
+	incl	48(%rsp)
+	cmpb	$0, 43(%rsp)
+	je	.LBB7_5
+.LBB7_1:                                # %mL1AfnY0y2NbVxu28WQPpKc3hYNEO7
+                                        # =>This Inner Loop Header: Depth=1
+	movslq	48(%rsp), %rax
+	cmpb	$0, (%rdi,%rax)
+	jne	.LBB7_3
+# %bb.2:                                # %pfKgtJP3ztobjLzTQBSbKXNk5JyDvS
+                                        #   in Loop: Header=BB7_1 Depth=1
+	movb	$0, 43(%rsp)
+	cmpb	$0, 43(%rsp)
+	jne	.LBB7_1
+	jmp	.LBB7_5
+	.p2align	4, 0x90
+.LBB7_7:                                # %Z6X0eCLuKOC2LWjTN5LR2OwRgNgiq8
+                                        #   in Loop: Header=BB7_5 Depth=1
+	movslq	44(%rsp), %rax
+	movzbl	(%rsi,%rax), %ecx
+	movq	56(%rsp), %rdx
+	movl	52(%rsp), %edi
+	addl	%eax, %edi
+	movslq	%edi, %rax
+	movb	%cl, (%rdx,%rax)
+	incl	44(%rsp)
+	cmpb	$0, 42(%rsp)
+	je	.LBB7_8
+.LBB7_5:                                # %aN7KDKA3nSKsq3esHIZubiDxnHOPyk
+                                        # =>This Inner Loop Header: Depth=1
+	movslq	44(%rsp), %rax
+	cmpb	$0, (%rsi,%rax)
+	jne	.LBB7_7
+# %bb.6:                                # %pVASffJxJubr4zLlRoxQm7GNXAMBtx
+                                        #   in Loop: Header=BB7_5 Depth=1
+	movb	$0, 42(%rsp)
+	jmp	.LBB7_7
+.LBB7_8:                                # %Mq5iOv2KW4waxxhjX9oyVNgyZxFFvL
+	movq	56(%rsp), %rax
+	addq	$72, %rsp
+	popq	%rdi
+	popq	%rsi
+	retq
+	.seh_endproc
+                                        # -- End function

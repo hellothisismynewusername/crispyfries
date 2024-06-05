@@ -119,45 +119,93 @@ fn itostr32 inp1 i32 : char^ {
     do outp -> ret;
 }
 
+/* the strlens do NOT include the null terminator... it's to prank those who aren't on the edge of their seat */
 
+fn strlen32 inp char^ : i32 {
+    let not_reached : bool
+    let count32 : i32
+    do
+        true -> not_reached
+        0 i32 -> count32
+    ;
+    not_reached while
+        do
+            ~inp count32 @ # 0 char == if
+                false -> not_reached
+            else
+                count32 1 i32 + -> count32
+            endif
+        ;
+    endwhile
+    do count32 -> ret;
+}
+
+fn strlen64 inp char^ : i64 {
+    let not_reached : bool
+    let count64 : i64
+    do
+        true -> not_reached
+        0 i64 -> count64
+    ;
+    not_reached while
+        do
+            ~inp count64 @ # 0 char == if
+                false -> not_reached
+            else
+                count64 1 i64 + -> count64
+            endif
+        ;
+    endwhile
+    do count64 -> ret;
+}
+
+fn strdup inp char^ : char^ {
+    let out_str : char^
+    let len64 : i64
+    do
+        ~inp strlen64 1 i64 + -> len64 malloc -> out_str
+    ;
+
+    let b : bool
+    let cntr64 : i64
+    do
+        true -> b
+        0 i64 -> cntr64
+    ;
+    b while
+        do
+            cntr64 len64 == if
+                0 char out_str len64 @ <-
+                false -> b
+            else
+                ~inp cntr64 @ #
+                    out_str cntr64 @
+                    <-
+            endif
+        ;
+    endwhile
+    do out_str -> ret;
+}
+
+fn main : void {
+    let juan : char^
+    let touhghh : char^
+    do
+        1234 i32 itostr32 -> juan strdup -> touhghh
+        juan free
+        touhghh puts free
+    ;
+}
+
+/* this is different from the strcat you know because instead of storing the destination into one of the input pointers, it instead returns a pointer to the destination and leaves the inputs unaffected */
 fn strcat inp1 char^ inp2 char^ : char^ {
     let end_of_inp1 : i32
 	let end_of_inp2 : i32
 
-	/* finding end of ~inp1 */
-	let not_reached : bool
-	let cntr : i32
-	do
-		true -> not_reached
-		0 i32 -> cntr
+    do
+    	~inp1 strlen32 -> end_of_inp1
+	    ~inp2 strlen32 -> end_of_inp2
 	;
-	not_reached while
-		do
-			~inp1 cntr @ # 0 char == if
-				false -> not_reached
-			else
-				cntr 1 i32 + -> cntr
-			endif
-		;
-	endwhile
-	do cntr -> end_of_inp1;
-
-
-	/* finding end of ~inp2 */
-	do
-		true -> not_reached
-		0 i32 -> cntr
-	;
-	not_reached while
-		do
-			~inp2 cntr @ # 0 char == if
-				false -> not_reached
-			else
-				cntr 1 i32 + -> cntr
-			endif
-		;
-	endwhile
-	do cntr -> end_of_inp2;
 
     /* putting ~inp1 and ~inp2 into out */
 	let out : char^

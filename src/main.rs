@@ -420,7 +420,7 @@ fn main() {
     let mut func_should_void_return = false;
 
     let mut write: String = String::new();
-    write.push_str("declare dso_local i32 @puts(ptr)\ndeclare dso_local i32 @putchar(i8)\ndeclare ptr @malloc(i32)\ndeclare void @free(ptr)\n\n");
+    write.push_str("declare dso_local i32 @puts(ptr)\ndeclare dso_local i32 @putchar(i8)\ndeclare ptr @malloc(i64)\ndeclare void @free(ptr)\n\n");
     let mut not_labels : Vec<(String, String, String)> = Vec::new();
     for i in 0..tokens.len() {
         if i < tokens.len() - 1 && tokens[i].type_id == TypeID::FunctionDeclaration && tokens[i].text_if_applicable != "dec" && tokens[i + 1].type_id == TypeID::FunctionName {  //merely for tmp_vars sake
@@ -770,13 +770,28 @@ fn main() {
                     //write.push_str(&*("%".to_string() + &*actual_ptr + " = load ptr, ptr %" + &*ptr.0 + "\n"));
 
                     let out_ptr = get_next_rand_string();
-                    write.push_str(&*("%".to_string() + &*out_ptr + " = getelementptr inbounds " + type_as_string(&ptr.3) + ", ptr %" + &*ptr.0 + ", i32 %" + &*index.0 + "\n"));
+                    if index.2 == TypeID::I64 {
+                        write.push_str(&*("%".to_string() + &*out_ptr + " = getelementptr inbounds " + type_as_string(&ptr.3) + ", ptr %" + &*ptr.0 + ", i64 %" + &*index.0 + "\n"));
+                    } else if index.2 == TypeID::I32 {
+                        write.push_str(&*("%".to_string() + &*out_ptr + " = getelementptr inbounds " + type_as_string(&ptr.3) + ", ptr %" + &*ptr.0 + ", i32 %" + &*index.0 + "\n"));
+                    } else {
+                        println!("Error: Incorrect type used to index with '@'");
+                        exit(1);
+                    }
                     names.push((out_ptr.clone(), TypeID::VariableName, TypeID::Ptr, ptr.3.clone()));
                 }
                 if tokens[j].type_id == TypeID::Malloc {
                     let name = get_next_rand_string();
                     let inp_size = names[names.len() - 1].clone();
-                    write.push_str(&*("%".to_string() + &*name + " = call ptr @malloc(" + type_as_string(&inp_size.2) + " %" + &*inp_size.0 + ")\n"));
+                    if inp_size.2 == TypeID::I32 {
+                        let tmp_name = get_next_rand_string();
+                        write.push_str(&*("%".to_string() + &*tmp_name + " = sext i32 %" + &*inp_size.0 + " to i64\n"));
+                        write.push_str(&*("%".to_string() + &*name + " = call ptr @malloc(i64 %" + &*tmp_name + ")\n"));
+                    } else if inp_size.2 != TypeID::I64 {
+                        println!("Error: Incorrect type used for input in `malloc`");
+                    } else {
+                        write.push_str(&*("%".to_string() + &*name + " = call ptr @malloc(i64 %" + &*inp_size.0 + ")\n"));
+                    }
                     names.pop();
                     names.push((name.clone(), TypeID::Ptr, inp_size.2.clone(), inp_size.3.clone()));
                 }
@@ -810,7 +825,7 @@ fn main() {
                     if tokens[j + 1].type_id == TypeID::Ret {
                         write.push_str(&*("ret ".to_string() + type_as_string(&top.2) + " %" + &*top.0 + "\n"));
                     } else {
-                        if top.1 == TypeID::Ptr {
+                        if top.1 == TypeID::Ptr || top.2 == TypeID::Ptr {
                             write.push_str(&*("store ptr %".to_string() + &*top.0 + ", ptr %" + &*tokens[j + 1].text_if_applicable + "\n"));
                         } else {
                             write.push_str(&*("store ".to_string() + type_as_string(&top.2) + " %" + &*top.0 + ", " + type_as_string(&tokens[j + 1].fake_type) + "* %" + &*tokens[j + 1].text_if_applicable + "\n"));
