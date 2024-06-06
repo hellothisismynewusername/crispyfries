@@ -93,7 +93,7 @@ fn itostr32 inp1 i32 : char^ {
                 len 1 i32 + -> len
             endif
         ;
-    endwhile                                                                                                                                                                                                                                                                                                                                                          let var1 : i32                                                                                                                                                                   let b1 : bool
+    endwhile
     let cntr : i32
     do
         len 1 i32 + malloc -> outp
@@ -181,20 +181,11 @@ fn strdup inp char^ : char^ {
                 ~inp cntr64 @ #
                     out_str cntr64 @
                     <-
+                cntr64 1 i64 + -> cntr64
             endif
         ;
     endwhile
     do out_str -> ret;
-}
-
-fn main : void {
-    let juan : char^
-    let touhghh : char^
-    do
-        1234 i32 itostr32 -> juan strdup -> touhghh
-        juan free
-        touhghh puts free
-    ;
 }
 
 /* this is different from the strcat you know because instead of storing the destination into one of the input pointers, it instead returns a pointer to the destination and leaves the inputs unaffected */
