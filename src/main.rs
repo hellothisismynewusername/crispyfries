@@ -1,3 +1,17 @@
+/*
+TODO
+
+while do tmp 0 i32 ==;
+
+endwhile
+
+you can make the beginning label position where "while" is, and then execute the do and check if the last expression is a bool.
+If it's not a bool then error.
+If it is a bool then you can proceed. You can conditional branch then.
+
+ */
+
+
 use std::process::Command;
 use std::cmp::PartialEq;
 use std::fs::File;

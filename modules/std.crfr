@@ -5,7 +5,7 @@ fn factorial32 inp i32 : i32 {
         ~inp 1 i32 == if
             1 i32 -> ret
         else
-            ~inp ~inp 1 i32 - fact * -> ret
+            ~inp ~inp 1 i32 - factorial32 * -> ret
         endif
         -1 i32 -> ret
     ;
@@ -16,7 +16,7 @@ fn factorial64 inp i64 : i64 {
         ~inp 1 i64 == if
             1 i64 -> ret
         else
-            ~inp ~inp 1 i64 - fact * -> ret
+            ~inp ~inp 1 i64 - factorial64 * -> ret
         endif
         -1 i64 -> ret
     ;
@@ -97,20 +97,20 @@ fn itostr32 inp1 i32 : char^ {
     let cntr : i32
     do
         len 1 i32 + malloc -> outp
-        true -> b1
-        ~inp1 -> var1
+        true -> b
+        ~inp1 -> var
         len 1 i32 - -> cntr
     ;
-    b1 while
+    b while
         do
-            var1 0 i32 == if
+            var 0 i32 == if
                 0 i8 outp len @ <-
-                false -> b1
+                false -> b
             else
-                var1 10 i32 rem itoc32
+                var 10 i32 rem itoc32
                 outp cntr @ <-
 
-                var1 10 i32 / -> var1
+                var 10 i32 / -> var
                 cntr 1 i32 - -> cntr
             endif
         ;
