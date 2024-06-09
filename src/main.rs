@@ -433,6 +433,9 @@ fn main() {
     let mut func_names : Vec<(String, usize, bool, (TypeID, TypeID))> = Vec::new(); //func name, how many inputs, whether to consume, (outType, outFakeType)
     let mut func_should_void_return = false;
 
+    let mut whileing = false;
+    let mut last_name : (String, TypeID, TypeID, TypeID) = (String::from(""), TypeID::None, TypeID::None, TypeID::None);
+
     let mut write: String = String::new();
     write.push_str("declare dso_local i32 @puts(ptr)\ndeclare dso_local i32 @putchar(i8)\ndeclare ptr @malloc(i64)\ndeclare void @free(ptr)\n\n");
     let mut not_labels : Vec<(String, String, String)> = Vec::new();
@@ -612,25 +615,33 @@ fn main() {
             tmp_vars_cntr -= 1;
         }
 
+        if tokens[i].text_if_applicable == ";" && whileing {
+            let top = &not_labels[not_labels.len() - 1];
+            let last = last_name.clone();
+            let name = get_next_rand_string();
+            //TODO: if cond_text is not i1...
+            //write.push_str(&*("%".to_string() + &*name + " = load i1, i1 %" + &*last.0 + "\n"));
+            write.push_str(&*("br i1 %".to_string() + &*last.0 + ", label %" + &top.0  + ", label %" + &top.2 + "\n\n"));
+            whileing = false;
+            write.push_str(&*(top.0.to_string() + ":\n"));
+        }
+
         if tokens[i].text_if_applicable == "endwhile" {
             let label = not_labels[not_labels.len() - 1].clone();
-            write.push_str(&*("br label %".to_string() + &*label.1 + "\n"));
+            write.push_str(&*("br label %".to_string() + &*label.1 + "\n\n"));
             write.push_str(&*(label.2.clone() + ":\n"));
             not_labels.pop();
         }
 
-        if tokens[i].type_id == TypeID::While && i > 0 && tokens[i - 1].type_id == TypeID::VariableName {
-            let cond_text = &*tokens[i - 1].text_if_applicable;
-            let cond_loaded_name = get_next_rand_string();
+        if tokens[i].type_id == TypeID::While {
             let label1_name = get_next_rand_string();
             let label2_name = get_next_rand_string();
             let exit_name = get_next_rand_string();
-            write.push_str(&*("br label %".to_string() + &*label1_name + "\n"));
+            write.push_str(&*("br label %".to_string() + &*label2_name + "\n"));
             write.push_str(&*("\n".to_string() + &*label2_name.clone() + ":\n"));
-            write.push_str(&*("%".to_string() + &*cond_loaded_name + " = load i1, i1* %" + &*cond_text + "\n"));
-            write.push_str(&*("br i1 %".to_string() + &*cond_loaded_name + ", label %" + &*label1_name + ", label %" + &*exit_name + "\n\n"));
             not_labels.push((label1_name.clone(), label2_name.clone(), exit_name.clone()));
-            write.push_str(&*(label1_name.clone() + ":\n"));
+            whileing = true;
+            
         }
 
         if tokens[i].type_id == TypeID::Do {
@@ -1217,6 +1228,8 @@ fn main() {
                 print!("| {} ", type_as_string(&names[cntr].2));
             }
             println!();
+
+            last_name = names[names.len() - 1].clone();
         }
 
         // println!("progress: ");
