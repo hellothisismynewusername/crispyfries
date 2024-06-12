@@ -9,9 +9,18 @@ add these to epic programming guide:
 	& (deref)
 	<- (assign value to location specified by pointer)
 	functions
-
-check if there's some operators that don't consume / should consume items.
+	dec
+	forth stuff
 
 puts does not consume the last item. this is a feature, mention it.
 
 mention that you should never name your variables the same thing, even across functions, so linking seperate modules will be needed... unless they're the same type. but just try to avoid it anyhow.
+
+typecastkng
+
+imporcluding w/ ll or crfr
+and all-in-one builder
+
+forthy features:
+	if thar keeps the stack
+	looping inside a do that keeps the stack

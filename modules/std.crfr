@@ -84,14 +84,10 @@ fn itostr32 inp1 i32 : char^ {
     ;
 
     /* getting len */
-    b while
+    while do var 0 i32 !=;
         do
-            var 0 i32 == if
-                false -> b
-            else
-                var 10 i32 / -> var
-                len 1 i32 + -> len
-            endif
+            var 10 i32 / -> var
+            len 1 i32 + -> len
         ;
     endwhile
     let cntr : i32
@@ -101,7 +97,7 @@ fn itostr32 inp1 i32 : char^ {
         ~inp1 -> var
         len 1 i32 - -> cntr
     ;
-    b while
+    while do b;
         do
             var 0 i32 == if
                 0 i8 outp len @ <-
@@ -128,7 +124,7 @@ fn strlen32 inp char^ : i32 {
         true -> not_reached
         0 i32 -> count32
     ;
-    not_reached while
+    while do not_reached;
         do
             ~inp count32 @ # 0 char == if
                 false -> not_reached
@@ -147,7 +143,7 @@ fn strlen64 inp char^ : i64 {
         true -> not_reached
         0 i64 -> count64
     ;
-    not_reached while
+    while do not_reached;
         do
             ~inp count64 @ # 0 char == if
                 false -> not_reached
@@ -172,7 +168,7 @@ fn strdup inp char^ : char^ {
         true -> b
         0 i64 -> cntr64
     ;
-    b while
+    while do b;
         do
             cntr64 len64 == if
                 0 char out_str len64 @ <-
@@ -191,14 +187,14 @@ fn strdup inp char^ : char^ {
 /* this is different from the strcat you know because instead of storing the destination into one of the input pointers, it instead returns a pointer to the destination and leaves the inputs unaffected */
 fn strcat inp1 char^ inp2 char^ : char^ {
     let end_of_inp1 : i32
-	let end_of_inp2 : i32
+    let end_of_inp2 : i32
 
     do
     	~inp1 strlen32 -> end_of_inp1
-	    ~inp2 strlen32 -> end_of_inp2
-	;
+	~inp2 strlen32 -> end_of_inp2
+    ;
 
-    /* putting ~inp1 and ~inp2 into out */
+        /* putting ~inp1 and ~inp2 into out */
 	let out : char^
 	let cntr1 : i32
 	let cntr2 : i32
@@ -213,7 +209,7 @@ fn strcat inp1 char^ inp2 char^ : char^ {
 		+
 		malloc -> out
 	;
-	not_yet_reached_inp1_end while
+	while do not_yet_reached_inp1_end;
 		do
 			~inp1 cntr1 @ # 0 char == if
 				false -> not_yet_reached_inp1_end
@@ -223,14 +219,14 @@ fn strcat inp1 char^ inp2 char^ : char^ {
 			endif
 		;
 	endwhile
-	not_yet_reached_inp2_end while
+	while do not_yet_reached_inp2_end;
 		do
 			~inp2 cntr2 @ # 0 char == if
 				false -> not_yet_reached_inp2_end
 			else
 			endif
-			~inp2 cntr2 @ # out cntr2 end_of_inp1 + @ <-
-            cntr2 1 i32 + -> cntr2
+			~inp2 cntr2 @ # out cntr2 end_of_inp1 + @ <- 
+			cntr2 1 i32 + -> cntr2
 		;
 	endwhile
 

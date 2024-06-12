@@ -1,17 +1,3 @@
-/*
-TODO
-
-while do tmp 0 i32 ==;
-
-endwhile
-
-you can make the beginning label position where "while" is, and then execute the do and check if the last expression is a bool.
-If it's not a bool then error.
-If it is a bool then you can proceed. You can conditional branch then.
-
- */
-
-
 use std::process::Command;
 use std::cmp::PartialEq;
 use std::fs::File;
@@ -56,6 +42,7 @@ enum TypeID {
     AssignAtGEP,
     Deref,
     Simple,
+    Forth
 }
 
 #[derive(Clone)]
@@ -244,6 +231,7 @@ fn main() {
                     "<-" => Token::new_with_type(TypeID::AssignAtGEP),
                     "#" => Token::new_with_type(TypeID::Deref),
                     "sizeof" | "puts" | "!" => Token::new_with_type_and_text(TypeID::Simple, x.clone()),
+                    "swap" | "dup" | "over" | "rot" | "drop" => Token::new_with_type_and_text(TypeID::Forth, x.clone()),
                     _ => Token::new_with_type_and_text(TypeID::UnknownToken, x.clone())
                 }
             }
@@ -621,6 +609,10 @@ fn main() {
             let name = get_next_rand_string();
             //TODO: if cond_text is not i1...
             //write.push_str(&*("%".to_string() + &*name + " = load i1, i1 %" + &*last.0 + "\n"));
+            if last.2 != TypeID::I1 {
+                println!("Error: `do` after `while` must evaluate to a bool");
+                exit(1);
+            }
             write.push_str(&*("br i1 %".to_string() + &*last.0 + ", label %" + &top.0  + ", label %" + &top.2 + "\n\n"));
             whileing = false;
             write.push_str(&*(top.0.to_string() + ":\n"));
@@ -720,14 +712,71 @@ fn main() {
                         }
                     }
                 }
+                if tokens[j].type_id == TypeID::Forth {
+                    match &*tokens[j].text_if_applicable {
+                        "swap" => {
+                            if names.len() < 2 {
+                                println!("Error: Not enough items on the stack for `swap`");
+                                exit(1);
+                            } else {
+                                let a = names.pop().unwrap();
+                                let b = names.pop().unwrap();
+                                names.push(a);
+                                names.push(b);
+                            }
+                        },
+                        "dup" => {
+                            if names.len() < 1 {
+                                println!("Error: Not items on the stack for `dup`");
+                                exit(1);
+                            } else {
+                                names.push(names[names.len() - 1].clone());
+                            }
+                        },
+                        "over" => {
+                            if names.len() < 2 {
+                                println!("Error: Not enough items on the stack for `over`");
+                                exit(1);
+                            } else {
+                                names.push(names[names.len() - 2].clone());
+                            }
+                        },
+                        "rot" => {
+                            if names.len() < 3 {
+                                println!("Error: Not enough items on the stack for `rot`");
+                                exit(1);
+                            } else {
+                                let tmp = names[names.len() - 3].clone();
+                                names.remove(names.len() - 3);
+                                names.push(tmp);
+                            }
+                        },
+                        "drop" => {
+                            if names.len() < 1 {
+                                println!("Error: Not enough items on the stack for `drop`");
+                                exit(1);
+                            } else {
+                                names.remove(names.len() - 1);
+                            }
+                        },
+                        _ => {
+                            println!("Error: Unknown Forth word");
+                            exit(1);
+                        }
+                    }
+                }
                 if tokens[j].type_id == TypeID::Simple {
                     if tokens[j].text_if_applicable == "sizeof" && j > 0 {
                         if tokens[j - 1].type_id == TypeID::Type {
                             let tmp_name = get_next_rand_string();
                             let name = get_next_rand_string();
-                            let ty = tokens[j - 1].clone();
-                            write.push_str(&*("%".to_string() + &*tmp_name + " = getelementptr inbounds " + &*ty.text_if_applicable + ", " + &*ty.text_if_applicable + "* null, i32 1\n"));
-                            write.push_str(&*("%".to_string() + &*name + " = ptrtoint " + &*ty.text_if_applicable + "* %" + &*tmp_name + " to i32" + "\n"));
+                            let ty = match &*tokens[j - 1].text_if_applicable {
+                                "f32" => String::from("float"),
+                                "f64" => String::from("double"),
+                                _ => tokens[j - 1].text_if_applicable.clone()
+                            };
+                            write.push_str(&*("%".to_string() + &*tmp_name + " = getelementptr inbounds " + &*ty + ", " + &*ty + "* null, i32 1\n"));
+                            write.push_str(&*("%".to_string() + &*name + " = ptrtoint " + &*ty + "* %" + &*tmp_name + " to i32" + "\n"));
                             names.push((name.clone(), TypeID::VariableName, TypeID::I32, TypeID::None));
                         } else {
                             println!("Error: sizeof called on a token that is not a type");
@@ -856,6 +905,7 @@ fn main() {
                             write.push_str(&*("store ".to_string() + type_as_string(&top.2) + " %" + &*top.0 + ", " + type_as_string(&tokens[j + 1].fake_type) + "* %" + &*tokens[j + 1].text_if_applicable + "\n"));
                         }
                     }
+                    names.pop();
                 }
                 if tokens[j].type_id != TypeID::BinaryOperator {
                     if tokens[j].text_if_applicable.chars().nth(0).is_some() && tokens[j].text_if_applicable.chars().nth(0).unwrap() == '~' {
@@ -1229,7 +1279,9 @@ fn main() {
             }
             println!();
 
-            last_name = names[names.len() - 1].clone();
+            if names.len() > 0 {
+                last_name = names[names.len() - 1].clone();
+            }
         }
 
         // println!("progress: ");
