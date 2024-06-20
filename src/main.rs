@@ -712,6 +712,13 @@ fn main() {
                         }
                     }
                 }
+                if tokens[j].type_id == TypeID::Type {
+                    if names[names.len() - 1].type_id != TypeID::Ptr {
+                        if names[names.len() - 1].fake_type != text_to_fake_type(&tokens[j].text_if_applicable {
+                            
+                        }
+                    }
+                }
                 if tokens[j].type_id == TypeID::Forth {
                     match &*tokens[j].text_if_applicable {
                         "swap" => {
