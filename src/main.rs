@@ -1,4 +1,3 @@
-use std::process::Command;
 use std::cmp::PartialEq;
 use std::fs::File;
 use std::io::{Read, Write};
@@ -42,7 +41,24 @@ enum TypeID {
     AssignAtGEP,
     Deref,
     Simple,
-    Forth
+    Forth,
+    StructDef,
+    Struct,
+    StructGEP
+}
+
+struct Struct {
+    name : String,
+    members : Vec<(String, TypeID, TypeID)>     //name, fake type, second fake type
+}
+
+impl Struct {
+    fn new(n : &str, mem : Vec<(String, TypeID, TypeID)>) -> Struct {
+        Struct {
+            name: String::from(n),
+            members: mem
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -148,10 +164,6 @@ fn main() {
             buf.insert(i, "i1".to_string());
             buf.insert(i, "0".to_string());
         }
-        if buf[i] == "bool" {
-            buf.remove(i);
-            buf.insert(i, "i1".to_string());
-        }
         if i < buf.len() - 1 && buf[i] == "'" && buf[i + 1] == "'" {
             println!("JJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJ");
             buf.remove(i);
@@ -198,6 +210,10 @@ fn main() {
             buf.remove(i);
             buf.insert(i, "i8".to_string());
         }
+        if buf[i] == "bool" {
+            buf.remove(i);
+            buf.insert(i, "i1".to_string());
+        }
     }
 
     print_string_vec(&buf);
@@ -215,11 +231,11 @@ fn main() {
                 Token::new_with_type_and_text(TypeID::FloatLiteral, x)
             } else {
                 match &*x {
-                    "fn" | "dec" => Token::new_with_type_and_text(TypeID::FunctionDeclaration, x.clone()),
+                    "fn" | "dec" | "privfn" => Token::new_with_type_and_text(TypeID::FunctionDeclaration, x.clone()),
                     "do" => Token::new_with_type(TypeID::Do),
                     "let" => Token::new_with_type(TypeID::VariableDeclaration),
                     "+" | "-" | "*" | "/" | "rem" | "==" | "!=" | "&" | "|" | "<" | "<=" | ">" | ">=" => Token::new_with_type_and_text(TypeID::BinaryOperator, x.clone()),
-                    "->" | ":" | ";" | "else" | "endif" | "endwhile" | "{" | "}" | "noconsu" => Token::new_with_type_and_text(TypeID::Sentinel, x.clone()),
+                    "->" | ":" | ";" | "else" | "endif" | "endwhile" | "{" | "}" | "noconsu" | "endstruct" => Token::new_with_type_and_text(TypeID::Sentinel, x.clone()),
                     "if" => Token::new_with_type_and_text(TypeID::If, x.clone()),
                     "while" => Token::new_with_type_and_text(TypeID::While, x.clone()),
                     "ret" => Token::new_with_type(TypeID::Ret),
@@ -232,6 +248,8 @@ fn main() {
                     "#" => Token::new_with_type(TypeID::Deref),
                     "sizeof" | "puts" | "!" => Token::new_with_type_and_text(TypeID::Simple, x.clone()),
                     "swap" | "dup" | "over" | "rot" | "drop" => Token::new_with_type_and_text(TypeID::Forth, x.clone()),
+                    "struct" => Token::new_with_type(TypeID::StructDef),
+                    "." => Token::new_with_type(TypeID::StructGEP),
                     _ => Token::new_with_type_and_text(TypeID::UnknownToken, x.clone())
                 }
             }
@@ -360,10 +378,10 @@ fn main() {
             println!("HUIH {}", tokens[i].text_if_applicable);
             let msg = match tokens[i].type_id {
                 TypeID::VariableDeclaration => Some("Error: Cannot define a variable in a `do`"),
+                TypeID::StructDef => Some("Error: Cannot define a struct in a `do`"),
                 _ => None
             };
             if msg.is_some() {
-                println!("RAHHHHHHHHHH");
                 println!("{}", msg.unwrap());
                 exit(1);
             }
@@ -372,7 +390,6 @@ fn main() {
                 _ => None
             };
             if msg2.is_some() {
-                println!("RAHHHHHHHHHH");
                 println!("{}", msg2.unwrap());
                 exit(1);
             }
@@ -421,6 +438,8 @@ fn main() {
     let mut func_names : Vec<(String, usize, bool, (TypeID, TypeID))> = Vec::new(); //func name, how many inputs, whether to consume, (outType, outFakeType)
     let mut func_should_void_return = false;
 
+    let mut structs : Vec<Struct> = Vec::new();
+
     let mut whileing = false;
     let mut last_name : (String, TypeID, TypeID, TypeID) = (String::from(""), TypeID::None, TypeID::None, TypeID::None);
 
@@ -428,6 +447,52 @@ fn main() {
     write.push_str("declare dso_local i32 @puts(ptr)\ndeclare dso_local i32 @putchar(i8)\ndeclare ptr @malloc(i64)\ndeclare void @free(ptr)\n\n");
     let mut not_labels : Vec<(String, String, String)> = Vec::new();
     for i in 0..tokens.len() {
+        if tokens[i].type_id == TypeID::StructDef {
+            let name : &str = &tokens[i + 1].text_if_applicable;
+            
+            let mut ind = i + 2;
+            let mut tmp : Vec<Token> = Vec::new();
+
+            while ind < tokens.len() && tokens[ind].text_if_applicable != "endstruct" {
+                tmp.push(tokens[ind].clone());
+                ind += 1;
+            }
+
+            let mut ns : Vec<&str> = Vec::new();
+            let mut ts : Vec<(TypeID, TypeID)> = Vec::new();
+            println!("len is {}", tmp.len());
+            for (i, x) in tmp.iter_mut().enumerate() {
+                if i % 2 == 0 {
+                    ns.push(&*x.text_if_applicable);
+                } else {
+                    if x.type_id == TypeID::Ptr {
+                        ts.push((TypeID::Ptr, string_to_fake_type(&*x.text_if_applicable).unwrap()));
+                    } else {
+                        ts.push((string_to_fake_type(&*x.text_if_applicable).unwrap(), TypeID::None));
+                    }
+                }
+            }
+            if ns.len() != ts.len() {
+                println!("Error: Members in struct definition are unparsable");
+                exit(1);
+            }
+            let mut tmp2 : Vec<(String, TypeID, TypeID)> = Vec::new();
+            tmp2 = ns.iter_mut().enumerate().map( |(i, x)| {
+                (x.to_owned(), ts[i].0.clone(), ts[i].1.clone())
+            }).collect();
+
+            structs.push(Struct::new(name, tmp2));
+
+            write.push_str(&*("\n@".to_string() + name + " = type {\n"));
+            for (i, x) in ts.iter().enumerate() {
+                if i == ts.len() - 1 {
+                    write.push_str(&*(type_as_string(&x.0).to_string() + "\n"));
+                } else {
+                    write.push_str(&*(type_as_string(&x.0).to_string() + ",\n"));
+                }
+            }
+            write.push_str("}\n\n");
+        }
         if i < tokens.len() - 1 && tokens[i].type_id == TypeID::FunctionDeclaration && tokens[i].text_if_applicable != "dec" && tokens[i + 1].type_id == TypeID::FunctionName {  //merely for tmp_vars sake
             let name = tokens[i + 1].text_if_applicable.clone();
             for j in 0..throwaway_func_names.len() {
@@ -499,7 +564,7 @@ fn main() {
                     println!("YO DO NOTTTT CONSUME OJAY?!!?????????????!!!!!!!!!!!!!!!!!!!!!!!");
                     consu = false;
                 }
-                if tokens[i].text_if_applicable == "fn" {
+                if tokens[i].text_if_applicable == "fn" || tokens[i].text_if_applicable == "privfn" {
                     for i in 0..params.len() {
                         if i < params.len() - 1 && i % 2 == 0 {
                             let tmp = params[i + 1].clone();
@@ -563,9 +628,12 @@ fn main() {
             if tokens[i].text_if_applicable == "fn" {
                 write.push_str(&*("define ".to_string() + &*fn_type + " @" + &*fn_name + "(" + &*params_str + ") {\n"));
                 func_names.push((fn_name.clone(), params.len() / 2, consu, fn_actual_out_type_tuple));
-            } else {
+            } else if tokens[i].text_if_applicable == "dec" {
                 write.push_str(&*("declare ".to_string() + &*fn_type + " @" + &*fn_name + "(" + &*params_str + ")\n"));
                 func_names.push((fn_name.clone(), params.len(), consu, fn_actual_out_type_tuple));
+            } else if tokens[i].text_if_applicable == "privfn" {
+                write.push_str(&*("define ".to_string() + &*fn_type + " %" + &*fn_name + "(" + &*params_str + ") {\n"));
+                func_names.push((fn_name.clone(), params.len() / 2, consu, fn_actual_out_type_tuple));
             }
             if string_to_fake_type(&*fn_type).is_none() {
                 println!("Error: output type of function `{}` is invalid", &*fn_name);
@@ -712,13 +780,13 @@ fn main() {
                         }
                     }
                 }
-                if tokens[j].type_id == TypeID::Type {
-                    if names[names.len() - 1].type_id != TypeID::Ptr {
-                        if names[names.len() - 1].fake_type != text_to_fake_type(&tokens[j].text_if_applicable {
-                            
-                        }
-                    }
-                }
+                // if tokens[j].type_id == TypeID::Type {
+                //     if names[names.len() - 1].type_id != TypeID::Ptr {
+                //         if names[names.len() - 1].fake_type != text_to_fake_type(&tokens[j].text_if_applicable {
+                //
+                //         }
+                //     }
+                // }
                 if tokens[j].type_id == TypeID::Forth {
                     match &*tokens[j].text_if_applicable {
                         "swap" => {

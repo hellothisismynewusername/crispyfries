@@ -26,3 +26,4 @@ update std
 built-in linking where you can import and itll add the decs you use
 
 priv funcs (mqybe ez?)
+	yuo need to change deez func calls to be %
