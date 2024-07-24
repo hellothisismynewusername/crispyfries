@@ -1,0 +1,12 @@
+fn thing inp i32 : i32 noconsu {
+	do
+		~inp 2 i32 * -> ret
+	;
+}
+
+fn main : i32 {
+	do
+		6 i32 thing + -> ret
+		/* since thing doesn't consume the 6, it remains on the evaluation stack and is supplied to the +, which takes 2 inputs */
+	;
+}

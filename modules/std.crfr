@@ -100,11 +100,10 @@ fn itostr32 inp1 i32 : char^ {
     while do b;
         do
             var 0 i32 == if
-                0 i8 outp len @ <-
+                outp len @ 0 i8 <-
                 false -> b
             else
-                var 10 i32 rem itoc32
-                outp cntr @ <-
+                outp cntr @ var 10 i32 rem itoc32 <-
 
                 var 10 i32 / -> var
                 cntr 1 i32 - -> cntr
@@ -171,12 +170,10 @@ fn strdup inp char^ : char^ {
     while do b;
         do
             cntr64 len64 == if
-                0 char out_str len64 @ <-
+                out_str len64 @ 0 char <-
                 false -> b
             else
-                ~inp cntr64 @ #
-                    out_str cntr64 @
-                    <-
+                out_str cntr64 @ ~inp cntr64 @ # <-
                 cntr64 1 i64 + -> cntr64
             endif
         ;
@@ -184,7 +181,7 @@ fn strdup inp char^ : char^ {
     do out_str -> ret;
 }
 
-/* this is different from the strcat you know because instead of storing the destination into one of the input pointers, it instead returns a pointer to the destination and leaves the inputs unaffected */
+/* this is different from the strcat you know because instead of storing the destination into one of the input pointers, it instead returns a pointer to the destination and leaves the memory pointed to by the parameters unaffected */
 fn strcat inp1 char^ inp2 char^ : char^ {
     let end_of_inp1 : i32
     let end_of_inp2 : i32
@@ -214,7 +211,7 @@ fn strcat inp1 char^ inp2 char^ : char^ {
 			~inp1 cntr1 @ # 0 char == if
 				false -> not_yet_reached_inp1_end
 			else
-				~inp1 cntr1 @ # out cntr1 @ <-
+				out cntr1 @ ~inp1 cntr1 @ # <-
 				cntr1 1 i32 + -> cntr1
 			endif
 		;
@@ -225,7 +222,7 @@ fn strcat inp1 char^ inp2 char^ : char^ {
 				false -> not_yet_reached_inp2_end
 			else
 			endif
-			~inp2 cntr2 @ # out cntr2 end_of_inp1 + @ <- 
+			out cntr2 end_of_inp1 + @ ~inp2 cntr2 @ # <- 
 			cntr2 1 i32 + -> cntr2
 		;
 	endwhile

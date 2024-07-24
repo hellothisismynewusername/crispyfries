@@ -1,0 +1,14 @@
+fn main : i32 {
+	let a : i32^
+	do
+		i32 sizeof malloc -> a 0 i32 @ 5 i32 <- 0 i32 @ # -> ret
+		
+		/*
+		Same thing as:
+		
+		i32 sizeof malloc -> a
+		a 0 i32 @ 5 i32 <-
+		a 0 i32 @ # -> ret
+		*/
+	;
+}

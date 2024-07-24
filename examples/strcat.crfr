@@ -1,0 +1,26 @@
+/* after compiling this, link the out.ll with modules/std.ll using `llvm-link` */
+
+dec strcat char^ char^ : char^
+
+fn main : void {
+	let a : char^
+	let b : char^
+	do
+		4 i64 malloc -> a
+		6 i32 malloc -> b	/* the parameter for malloc can be either i32 or i64 */
+
+		a 0 i32 @ 'h' <-
+		a 1 i32 @ 'i' <-
+		a 2 i32 @ ' ' <-
+		a 3 i32 @ 0 char <-
+
+		b 0 i32 @ 't' <-
+		b 1 i32 @ 'h' <-
+		b 2 i32 @ 'e' <-
+		b 3 i32 @ 'r' <-
+		b 4 i32 @ 'e' <-
+		b 5 i32 @ 0 char <-
+
+		a b strcat puts free
+	;
+}

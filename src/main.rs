@@ -18,7 +18,6 @@ enum TypeID {
     BinaryOperator,
     Sentinel,
     Type,
-    StringLiteral,
     FunctionDeclaration,
     VariableDeclaration,
     UnknownToken,
@@ -31,7 +30,6 @@ enum TypeID {
     Do,
     RemoveMe,
     None,
-    Operator,
     If,
     While,
     Ptr,
@@ -41,78 +39,22 @@ enum TypeID {
     AssignAtGEP,
     Deref,
     Simple,
-    Forth,
-    StructDef,
-    Struct,
-    StructGEP
-}
-
-struct Struct {
-    name : String,
-    members : Vec<(String, TypeID, TypeID)>     //name, fake type, second fake type
-}
-
-impl Struct {
-    fn new(n : &str, mem : Vec<(String, TypeID, TypeID)>) -> Struct {
-        Struct {
-            name: String::from(n),
-            members: mem
-        }
-    }
+    Forth
 }
 
 #[derive(Clone)]
 struct Token {
     text_if_applicable : String,
-    i64_if_applicable : i64,
-    i32_if_applicable : i32,
-    i8_if_applicable : i8,
     type_id : TypeID,
     fake_type : TypeID,
-    second_fake_type : TypeID
+    second_fake_type : TypeID,
 }
 
 impl Token {
     fn new_with_type_and_text(ty : TypeID, inp : String) -> Token {
         Token {
             text_if_applicable: inp,
-            i64_if_applicable: 0,
-            i32_if_applicable: 0,
-            i8_if_applicable: 0,
             type_id: ty,
-            fake_type: TypeID::None,
-            second_fake_type: TypeID::None,
-        }
-    }
-    fn new_with_i64(inp : i64) -> Token {
-        Token {
-            text_if_applicable: "".to_string(),
-            i64_if_applicable: inp,
-            i32_if_applicable: 0,
-            i8_if_applicable: 0,
-            type_id: TypeID::I64,
-            fake_type: TypeID::None,
-            second_fake_type: TypeID::None,
-        }
-    }
-    fn new_with_i32(inp : i32) -> Token {
-        Token {
-            text_if_applicable: "".to_string(),
-            i64_if_applicable: 0,
-            i32_if_applicable: inp,
-            i8_if_applicable: 0,
-            type_id: TypeID::I32,
-            fake_type: TypeID::None,
-            second_fake_type: TypeID::None,
-        }
-    }
-    fn new_with_i8(inp : i8) -> Token {
-        Token {
-            text_if_applicable: "".to_string(),
-            i64_if_applicable: 0,
-            i32_if_applicable: 0,
-            i8_if_applicable: inp,
-            type_id: TypeID::I8,
             fake_type: TypeID::None,
             second_fake_type: TypeID::None,
         }
@@ -120,9 +62,6 @@ impl Token {
     fn new_with_type(inp : TypeID) -> Token {
         Token {
             text_if_applicable: "".to_string(),
-            i64_if_applicable: 0,
-            i32_if_applicable: 0,
-            i8_if_applicable: 0,
             type_id: inp,
             fake_type: TypeID::None,
             second_fake_type: TypeID::None,
@@ -231,11 +170,11 @@ fn main() {
                 Token::new_with_type_and_text(TypeID::FloatLiteral, x)
             } else {
                 match &*x {
-                    "fn" | "dec" | "privfn" => Token::new_with_type_and_text(TypeID::FunctionDeclaration, x.clone()),
+                    "fn" | "dec" => Token::new_with_type_and_text(TypeID::FunctionDeclaration, x.clone()),
                     "do" => Token::new_with_type(TypeID::Do),
                     "let" => Token::new_with_type(TypeID::VariableDeclaration),
                     "+" | "-" | "*" | "/" | "rem" | "==" | "!=" | "&" | "|" | "<" | "<=" | ">" | ">=" => Token::new_with_type_and_text(TypeID::BinaryOperator, x.clone()),
-                    "->" | ":" | ";" | "else" | "endif" | "endwhile" | "{" | "}" | "noconsu" | "endstruct" => Token::new_with_type_and_text(TypeID::Sentinel, x.clone()),
+                    "->" | ":" | ";" | "else" | "endif" | "endwhile" | "{" | "}" | "noconsu" => Token::new_with_type_and_text(TypeID::Sentinel, x.clone()),
                     "if" => Token::new_with_type_and_text(TypeID::If, x.clone()),
                     "while" => Token::new_with_type_and_text(TypeID::While, x.clone()),
                     "ret" => Token::new_with_type(TypeID::Ret),
@@ -248,8 +187,6 @@ fn main() {
                     "#" => Token::new_with_type(TypeID::Deref),
                     "sizeof" | "puts" | "!" => Token::new_with_type_and_text(TypeID::Simple, x.clone()),
                     "swap" | "dup" | "over" | "rot" | "drop" => Token::new_with_type_and_text(TypeID::Forth, x.clone()),
-                    "struct" => Token::new_with_type(TypeID::StructDef),
-                    "." => Token::new_with_type(TypeID::StructGEP),
                     _ => Token::new_with_type_and_text(TypeID::UnknownToken, x.clone())
                 }
             }
@@ -329,15 +266,12 @@ fn main() {
                 let mut type_id = TypeID::None;
                 if tokens[i + 1].text_if_applicable == "i64" {
                     type_id = TypeID::I64;
-                    tokens[i].i64_if_applicable = tokens[i].text_if_applicable.parse::<i64>().unwrap();
                 }
                 if tokens[i + 1].text_if_applicable == "i32" {
                     type_id = TypeID::I32;
-                    tokens[i].i32_if_applicable = tokens[i].text_if_applicable.parse::<i32>().unwrap();
                 }
                 if tokens[i + 1].text_if_applicable == "i8" {
                     type_id = TypeID::I8;
-                    tokens[i].i8_if_applicable = tokens[i].text_if_applicable.parse::<i8>().unwrap();
                 }
                 if tokens[i + 1].text_if_applicable == "i1" {
                     type_id = TypeID::I1;
@@ -345,7 +279,7 @@ fn main() {
                 tokens[i].fake_type = type_id;
             }
             if tokens[i].type_id == TypeID::FloatLiteral && tokens[i + 1].type_id == TypeID::Type {
-                let mut type_id = string_to_fake_type(&*tokens[i + 1].text_if_applicable).unwrap();
+                let type_id = string_to_fake_type(&*tokens[i + 1].text_if_applicable).unwrap();
                 tokens[i].fake_type = type_id;
             }
         }
@@ -362,14 +296,14 @@ fn main() {
         }
         if tokens[i].type_id == TypeID::Do {
             if doing {
-                println!("Error: Nested `do`s are not allowed");
+                println!("Error: Nested 'do's are not allowed");
                 exit(1);
             }
             doing = true;
         }
         if tokens[i].text_if_applicable == ";" {
             if !doing {
-                println!("Error: Found `;` without matching `do`");
+                println!("Error: Found ';' without matching 'do'");
                 exit(1);
             }
             doing = false;
@@ -377,8 +311,7 @@ fn main() {
         if doing {
             println!("HUIH {}", tokens[i].text_if_applicable);
             let msg = match tokens[i].type_id {
-                TypeID::VariableDeclaration => Some("Error: Cannot define a variable in a `do`"),
-                TypeID::StructDef => Some("Error: Cannot define a struct in a `do`"),
+                TypeID::VariableDeclaration => Some("Error: Cannot define a variable in a 'do'"),
                 _ => None
             };
             if msg.is_some() {
@@ -386,7 +319,7 @@ fn main() {
                 exit(1);
             }
             let msg2 = match &*tokens[i].text_if_applicable {
-                "}" => Some("Error: Found `do` without matching `;`"),
+                "}" => Some("Error: Found 'do' without matching ';'"),
                 _ => None
             };
             if msg2.is_some() {
@@ -396,7 +329,7 @@ fn main() {
         }
         if !doing {
             let msg = match &*tokens[i].text_if_applicable {
-                "puts" => Some("Error: Cannot use `puts` outside of a `do`"),
+                "puts" => Some("Error: Cannot use 'puts' outside of a 'do'"),
                 _ => None
             };
             if msg.is_some() {
@@ -417,7 +350,7 @@ fn main() {
         for cntr2 in (scope_count + 1)..var_names.len() {
             for name in &var_names[cntr2] {
                 if tokens[i].text_if_applicable == name.0 {
-                    println!("Error: use of variable `{}` out of its scope", name.0);
+                    println!("Error: use of variable '{}' out of its scope", name.0);
                     exit(1);
                 }
             }
@@ -438,8 +371,6 @@ fn main() {
     let mut func_names : Vec<(String, usize, bool, (TypeID, TypeID))> = Vec::new(); //func name, how many inputs, whether to consume, (outType, outFakeType)
     let mut func_should_void_return = false;
 
-    let mut structs : Vec<Struct> = Vec::new();
-
     let mut whileing = false;
     let mut last_name : (String, TypeID, TypeID, TypeID) = (String::from(""), TypeID::None, TypeID::None, TypeID::None);
 
@@ -447,52 +378,6 @@ fn main() {
     write.push_str("declare dso_local i32 @puts(ptr)\ndeclare dso_local i32 @putchar(i8)\ndeclare ptr @malloc(i64)\ndeclare void @free(ptr)\n\n");
     let mut not_labels : Vec<(String, String, String)> = Vec::new();
     for i in 0..tokens.len() {
-        if tokens[i].type_id == TypeID::StructDef {
-            let name : &str = &tokens[i + 1].text_if_applicable;
-            
-            let mut ind = i + 2;
-            let mut tmp : Vec<Token> = Vec::new();
-
-            while ind < tokens.len() && tokens[ind].text_if_applicable != "endstruct" {
-                tmp.push(tokens[ind].clone());
-                ind += 1;
-            }
-
-            let mut ns : Vec<&str> = Vec::new();
-            let mut ts : Vec<(TypeID, TypeID)> = Vec::new();
-            println!("len is {}", tmp.len());
-            for (i, x) in tmp.iter_mut().enumerate() {
-                if i % 2 == 0 {
-                    ns.push(&*x.text_if_applicable);
-                } else {
-                    if x.type_id == TypeID::Ptr {
-                        ts.push((TypeID::Ptr, string_to_fake_type(&*x.text_if_applicable).unwrap()));
-                    } else {
-                        ts.push((string_to_fake_type(&*x.text_if_applicable).unwrap(), TypeID::None));
-                    }
-                }
-            }
-            if ns.len() != ts.len() {
-                println!("Error: Members in struct definition are unparsable");
-                exit(1);
-            }
-            let mut tmp2 : Vec<(String, TypeID, TypeID)> = Vec::new();
-            tmp2 = ns.iter_mut().enumerate().map( |(i, x)| {
-                (x.to_owned(), ts[i].0.clone(), ts[i].1.clone())
-            }).collect();
-
-            structs.push(Struct::new(name, tmp2));
-
-            write.push_str(&*("\n@".to_string() + name + " = type {\n"));
-            for (i, x) in ts.iter().enumerate() {
-                if i == ts.len() - 1 {
-                    write.push_str(&*(type_as_string(&x.0).to_string() + "\n"));
-                } else {
-                    write.push_str(&*(type_as_string(&x.0).to_string() + ",\n"));
-                }
-            }
-            write.push_str("}\n\n");
-        }
         if i < tokens.len() - 1 && tokens[i].type_id == TypeID::FunctionDeclaration && tokens[i].text_if_applicable != "dec" && tokens[i + 1].type_id == TypeID::FunctionName {  //merely for tmp_vars sake
             let name = tokens[i + 1].text_if_applicable.clone();
             for j in 0..throwaway_func_names.len() {
@@ -548,8 +433,8 @@ fn main() {
             let mut params_str = String::from("");
             let orig = i + 2;
             let mut cntr = 0;
-            let mut fn_type = "NotAType".to_string();
-            let mut fn_actual_out_type_tuple : (TypeID, TypeID) = (TypeID::None, TypeID::None);
+            let fn_type : String;
+            let fn_actual_out_type_tuple : (TypeID, TypeID);
             let mut consu = true;
             if tokens[i + 2].type_id != TypeID::Sentinel {
                 while orig + cntr < tokens.len() && tokens[orig + cntr].type_id != TypeID::Sentinel {
@@ -616,7 +501,7 @@ fn main() {
                     };
                 }
             } else {
-                println!("Error: Return type not specified for function `{}`", &*fn_name);
+                println!("Error: Return type not specified for function '{}'", &*fn_name);
                 exit(1);
             }
             fn_actual_out_type_tuple =
@@ -636,7 +521,7 @@ fn main() {
                 func_names.push((fn_name.clone(), params.len() / 2, consu, fn_actual_out_type_tuple));
             }
             if string_to_fake_type(&*fn_type).is_none() {
-                println!("Error: output type of function `{}` is invalid", &*fn_name);
+                println!("Error: output type of function '{}' is invalid", &*fn_name);
             }
             println!("made a function {}, {}, {}", &*fn_name, params.len() / 2, consu);
 
@@ -674,11 +559,8 @@ fn main() {
         if tokens[i].text_if_applicable == ";" && whileing {
             let top = &not_labels[not_labels.len() - 1];
             let last = last_name.clone();
-            let name = get_next_rand_string();
-            //TODO: if cond_text is not i1...
-            //write.push_str(&*("%".to_string() + &*name + " = load i1, i1 %" + &*last.0 + "\n"));
             if last.2 != TypeID::I1 {
-                println!("Error: `do` after `while` must evaluate to a bool");
+                println!("Error: 'do' after 'while' must evaluate to a bool");
                 exit(1);
             }
             write.push_str(&*("br i1 %".to_string() + &*last.0 + ", label %" + &top.0  + ", label %" + &top.2 + "\n\n"));
@@ -730,13 +612,13 @@ fn main() {
 
                             if names.len() < inp_count {
                                 //println!("{} < {}", names.len(), inp_count);
-                                println!("Error: Not enough inputs supplied for function `{}`", &*name);
+                                println!("Error: Not enough inputs supplied for function '{}'", &*name);
                                 exit(1);
                             }
                             let mut inp : String = String::from("");
                             let mut inp_vec = Vec::new();
                             let mut incrementer = 1;
-                            for b in 0..inp_count {
+                            for _b in 0..inp_count {
                                 inp_vec.push(names[names.len() - incrementer].clone());
                                 incrementer += 1;
                             }
@@ -780,6 +662,33 @@ fn main() {
                         }
                     }
                 }
+                // if tokens[j].type_id == TypeID::StructGEP && names.len() > 1 && j > 0 {
+                //     let ptr: (String, TypeID, TypeID, TypeID, usize) = names[names.len() - 2].clone();
+                //     let index_text = tokens[j - 1].text_if_applicable.clone();
+                //     names.pop();
+
+                //     if ptr.2 != TypeID::Struct {
+                //         println!("Error: '.' must be used on a struct");
+                //         exit(1);
+                //     }
+
+                //     let current_struct = structs[ptr.4].clone();
+
+                //     let mut struct_member_index = None;
+                //     for (i, x) in current_struct.members.iter().enumerate() {
+                //         if &*x.0 == &*index_text {
+                //             struct_member_index = Some(i);
+                //         }
+                //     }
+                //     if struct_member_index.is_none() {
+                //         println!("Error: Struct does not contain such member");
+                //         exit(1);
+                //     }
+
+                //     let out_ptr = get_next_rand_string();
+                //     write.push_str(&*("%".to_string() + &*out_ptr + " = getelementptr %" + &*current_struct.name + ", ptr %" + &*ptr.0 + ", i64 %" + &*(struct_member_index.unwrap().to_string()) + "\n"));
+                //     names.push((out_ptr.clone(), TypeID::VariableName, TypeID::Ptr, ptr.3.clone(), 0));
+                // }
                 // if tokens[j].type_id == TypeID::Type {
                 //     if names[names.len() - 1].type_id != TypeID::Ptr {
                 //         if names[names.len() - 1].fake_type != text_to_fake_type(&tokens[j].text_if_applicable {
@@ -791,7 +700,7 @@ fn main() {
                     match &*tokens[j].text_if_applicable {
                         "swap" => {
                             if names.len() < 2 {
-                                println!("Error: Not enough items on the stack for `swap`");
+                                println!("Error: Not enough items on the stack for 'swap'");
                                 exit(1);
                             } else {
                                 let a = names.pop().unwrap();
@@ -802,7 +711,7 @@ fn main() {
                         },
                         "dup" => {
                             if names.len() < 1 {
-                                println!("Error: Not items on the stack for `dup`");
+                                println!("Error: Not items on the stack for 'dup'");
                                 exit(1);
                             } else {
                                 names.push(names[names.len() - 1].clone());
@@ -810,7 +719,7 @@ fn main() {
                         },
                         "over" => {
                             if names.len() < 2 {
-                                println!("Error: Not enough items on the stack for `over`");
+                                println!("Error: Not enough items on the stack for 'over'");
                                 exit(1);
                             } else {
                                 names.push(names[names.len() - 2].clone());
@@ -818,7 +727,7 @@ fn main() {
                         },
                         "rot" => {
                             if names.len() < 3 {
-                                println!("Error: Not enough items on the stack for `rot`");
+                                println!("Error: Not enough items on the stack for 'rot'");
                                 exit(1);
                             } else {
                                 let tmp = names[names.len() - 3].clone();
@@ -828,7 +737,7 @@ fn main() {
                         },
                         "drop" => {
                             if names.len() < 1 {
-                                println!("Error: Not enough items on the stack for `drop`");
+                                println!("Error: Not enough items on the stack for 'drop'");
                                 exit(1);
                             } else {
                                 names.remove(names.len() - 1);
@@ -903,15 +812,17 @@ fn main() {
                     }
                 }
                 if tokens[j].type_id == TypeID::AssignAtGEP && names.len() > 1 {
-                    let assignment = names[names.len() - 2].clone();
-                    let ptr = names[names.len() - 1].clone();
+                    let assignment = names[names.len() - 1].clone();
+                    let ptr = names[names.len() - 2].clone();
                     names.pop();
                     //names.pop();
 
                     write.push_str(&*("store ".to_string() + type_as_string(&assignment.2) + " %" + &*assignment.0 + ", ptr %" + &*ptr.0 + "\n"));
                 }
                 if tokens[j].type_id == TypeID::GEP && names.len() > 1 {
-                    let actual_ptr = get_next_rand_string();
+
+                    println!("!!!!!!!!!!!!!!!!!!!!!!!!!!!!shoutin lager lager lager lager shoutin lager lager lager lager shoutin lager lager lager lager. shoutin, lager lager lager-shoutin mega mega white thing mega mega white thing mega mega white thing mega mega.");
+
                     let ptr = names[names.len() - 2].clone();
                     let index = names[names.len() - 1].clone();
                     names.pop();
@@ -937,7 +848,7 @@ fn main() {
                         write.push_str(&*("%".to_string() + &*tmp_name + " = sext i32 %" + &*inp_size.0 + " to i64\n"));
                         write.push_str(&*("%".to_string() + &*name + " = call ptr @malloc(i64 %" + &*tmp_name + ")\n"));
                     } else if inp_size.2 != TypeID::I64 {
-                        println!("Error: Incorrect type used for input in `malloc`");
+                        println!("Error: Incorrect type used for input in 'malloc'");
                     } else {
                         write.push_str(&*("%".to_string() + &*name + " = call ptr @malloc(i64 %" + &*inp_size.0 + ")\n"));
                     }
@@ -956,7 +867,7 @@ fn main() {
                     names.clear();
                 }
                 if tokens[j].type_id == TypeID::If {
-                    let cond = names[names.len() - 1].clone();     //TODO: you should check if latest name is a bool
+                    let cond = names[names.len() - 1].clone();
                     let label1_name = get_next_rand_string();
                     let label2_name = get_next_rand_string();
                     let exit_name = get_next_rand_string();
@@ -967,7 +878,7 @@ fn main() {
                 }
                 if tokens[j].text_if_applicable == "->" {
                     if tokens[j + 1].type_id != TypeID::VariableName && tokens[j + 1].type_id != TypeID::Ret {
-                        println!("Error: `{}` is not a variable or `ret`", &*tokens[j + 1].text_if_applicable);
+                        println!("Error: '{}' is not a variable or 'ret'", &*tokens[j + 1].text_if_applicable);
                         exit(1);
                     }
                     let top = names[names.len() - 1].clone();
@@ -1006,9 +917,9 @@ fn main() {
                             names.push((name.clone(), tokens[j].type_id.clone(), tokens[j].fake_type.clone(), TypeID::None));
                             println!("I pushed a {} which is a {} but actually {}", &name, type_as_string(&tokens[j].type_id), type_as_string(&tokens[j].fake_type));
                             let str = match tokens[j].fake_type {
-                                TypeID::I32 => "%".to_string() + &*name + " = add i32 " + &*tokens[j].i32_if_applicable.to_string() + ", 0\n",
-                                TypeID::I8 => "%".to_string() + &*name + " = add i8 " + &*tokens[j].i8_if_applicable.to_string() + ", 0\n",
-                                TypeID::I64 => "%".to_string() + &*name + " = add i64 " + &*tokens[j].i64_if_applicable.to_string() + ", 0\n",
+                                TypeID::I32 => "%".to_string() + &*name + " = add i32 " + &*tokens[j].text_if_applicable + ", 0\n",
+                                TypeID::I8 => "%".to_string() + &*name + " = add i8 " + &*tokens[j].text_if_applicable + ", 0\n",
+                                TypeID::I64 => "%".to_string() + &*name + " = add i64 " + &*tokens[j].text_if_applicable + ", 0\n",
                                 TypeID::I1 => "%".to_string() + &*name + " = add i1 " + &*tokens[j].text_if_applicable + ", 0\n",
                                 TypeID::F32 => {
                                     let tmp_name = get_next_rand_string();
@@ -1016,7 +927,7 @@ fn main() {
                                     "%".to_string() + &*name + " = fptrunc double %" + &*tmp_name + " to float\n"
                                 },
                                 TypeID::F64 => "%".to_string() + &*name + " = fadd double " + &*tokens[j].text_if_applicable + ", 0.0\n",
-                                _ => "%".to_string() + &*name + " = add i32 " + &*tokens[j].i32_if_applicable.to_string() + ", 0\n"             //TODO: might wanna Option<> this stuff
+                                _ => "%".to_string() + &*name + " = add i32 " + &*tokens[j].text_if_applicable + ", 0\n"
                             };
                             write.push_str(&*str);
                         } else if tokens[j].type_id == TypeID::VariableName {
@@ -1037,7 +948,7 @@ fn main() {
                     if tokens[j].text_if_applicable == "+" {
                         let name = get_next_rand_string();
                         if names.len() < 2 {
-                            println!("Error: Not enough operands supplied to `+`");
+                            println!("Error: Not enough operands supplied to '+'");
                             exit(1);
                         }
                         let value_1 = names[names.len() - 2].clone();
@@ -1068,7 +979,7 @@ fn main() {
                     if tokens[j].text_if_applicable == "-" {
                         let name = get_next_rand_string();
                         if names.len() < 2 {
-                            println!("Error: Not enough operands supplied to `-`");
+                            println!("Error: Not enough operands supplied to '-'");
                             exit(1);
                         }
                         let value_1 = names[names.len() - 2].clone();
@@ -1097,7 +1008,7 @@ fn main() {
                     if tokens[j].text_if_applicable == "*" {
                         let name = get_next_rand_string();
                         if names.len() < 2 {
-                            println!("Error: Not enough operands supplied to `*`");
+                            println!("Error: Not enough operands supplied to '*'");
                             exit(1);
                         }
                         let value_1 = names[names.len() - 2].clone();
@@ -1126,7 +1037,7 @@ fn main() {
                     if tokens[j].text_if_applicable == "/" {
                         let name = get_next_rand_string();
                         if names.len() < 2 {
-                            println!("Error: Not enough operands supplied to `/`");
+                            println!("Error: Not enough operands supplied to '/'");
                             exit(1);
                         }
                         let value_1 = names[names.len() - 2].clone();
@@ -1155,7 +1066,7 @@ fn main() {
                     if tokens[j].text_if_applicable == "rem" {
                         let name = get_next_rand_string();
                         if names.len() < 2 {
-                            println!("Error: Not enough operands supplied to `rem`");
+                            println!("Error: Not enough operands supplied to 'rem'");
                             exit(1);
                         }
                         let value_1 = names[names.len() - 2].clone();
@@ -1178,7 +1089,7 @@ fn main() {
                     if tokens[j].text_if_applicable == "==" {
                         let name = get_next_rand_string();
                         if names.len() < 2 {
-                            println!("Error: Not enough operands supplied to `==`");
+                            println!("Error: Not enough operands supplied to '=='");
                             exit(1);
                         }
                         let value_1 = names[names.len() - 2].clone();
@@ -1201,7 +1112,7 @@ fn main() {
                     if tokens[j].text_if_applicable == "!=" {
                         let name = get_next_rand_string();
                         if names.len() < 2 {
-                            println!("Error: Not enough operands supplied to `!=`");
+                            println!("Error: Not enough operands supplied to '!='");
                             exit(1);
                         }
                         let value_1 = names[names.len() - 2].clone();
@@ -1223,7 +1134,7 @@ fn main() {
                     if tokens[j].text_if_applicable == "&" {
                         let name = get_next_rand_string();
                         if names.len() < 2 {
-                            println!("Error: Not enough operands supplied to `&`");
+                            println!("Error: Not enough operands supplied to '&'");
                             exit(1);
                         }
                         let value_1 = names[names.len() - 2].clone();
@@ -1242,7 +1153,7 @@ fn main() {
                     if tokens[j].text_if_applicable == "|" {
                         let name = get_next_rand_string();
                         if names.len() < 2 {
-                            println!("Error: Not enough operands supplied to `|`");
+                            println!("Error: Not enough operands supplied to '|'");
                             exit(1);
                         }
                         let value_1 = names[names.len() - 2].clone();
@@ -1257,7 +1168,7 @@ fn main() {
                     if tokens[j].text_if_applicable == "<" {
                         let name = get_next_rand_string();
                         if names.len() < 2 {
-                            println!("Error: Not enough operands supplied to `<`");
+                            println!("Error: Not enough operands supplied to '<'");
                             exit(1);
                         }
                         let value_1 = names[names.len() - 2].clone();
@@ -1280,7 +1191,7 @@ fn main() {
                     if tokens[j].text_if_applicable == "<=" {
                         let name = get_next_rand_string();
                         if names.len() < 2 {
-                            println!("Error: Not enough operands supplied to `<=`");
+                            println!("Error: Not enough operands supplied to '<='");
                             exit(1);
                         }
                         let value_1 = names[names.len() - 2].clone();
@@ -1303,7 +1214,7 @@ fn main() {
                     if tokens[j].text_if_applicable == ">" {
                         let name = get_next_rand_string();
                         if names.len() < 2 {
-                            println!("Error: Not enough operands supplied to `>`");
+                            println!("Error: Not enough operands supplied to '>'");
                             exit(1);
                         }
                         let value_1 = names[names.len() - 2].clone();
@@ -1326,7 +1237,7 @@ fn main() {
                     if tokens[j].text_if_applicable == ">=" {
                         let name = get_next_rand_string();
                         if names.len() < 2 {
-                            println!("Error: Not enough operands supplied to `>=`");
+                            println!("Error: Not enough operands supplied to '>='");
                             exit(1);
                         }
                         let value_1 = names[names.len() - 2].clone();
@@ -1368,7 +1279,7 @@ fn main() {
 
     let mut write_file = File::create("out.ll").expect("Couldn't make write file");
     let tmp = write.into_bytes();
-    write_file.write_all(&tmp);
+    write_file.write_all(&tmp).expect("Error: could not write successfully");
 
 }
 
@@ -1399,40 +1310,6 @@ fn fake_is_int(inp : &TypeID) -> bool {
     }
 }
 
-fn fake_is_float(inp : &TypeID) -> bool {
-    match *inp {
-        TypeID::F32 => true,
-        TypeID::F64 => true,
-        _ => false
-    }
-}
-
-// I32,
-// I64,
-// I8,
-// I1,
-// BinaryOperator,
-// Sentinel,
-// Type,
-// StringLiteral,
-// FunctionDeclaration,
-// VariableDeclaration,
-// UnknownToken,
-// EOF,
-// FunctionName,
-// VariableName,
-// Ret,
-// IntegerLiteral,
-// Do,
-// RemoveMe,
-// None,
-// Operator,
-// If,
-// While,
-// Ptr,
-// PtrNotation,
-// Malloc
-
 fn type_as_string(inp : &TypeID) -> &str {
     match *inp {
         TypeID::UnknownToken => "Unknown",
@@ -1454,7 +1331,6 @@ fn type_as_string(inp : &TypeID) -> &str {
         TypeID::F64 => "double",
         TypeID::Void => "void",
         TypeID::Ret => "Ret",
-        TypeID::Operator => "Operator",
         TypeID::If => "If",
         TypeID::While => "While",
         TypeID::Ptr => "ptr",
@@ -1488,7 +1364,7 @@ fn print_string_vec(inp : &Vec<String>) {
 }
 
 fn print_token(inp : &Token) {
-    print!("(text: {}, type: {}, fake type: {}, second fake type: {}, i32: {})", inp.text_if_applicable, type_as_string(&inp.type_id), type_as_string(&inp.fake_type), type_as_string(&inp.second_fake_type), inp.i32_if_applicable);
+    print!("(text: {}, type: {}, fake type: {}, second fake type: {})", inp.text_if_applicable, type_as_string(&inp.type_id), type_as_string(&inp.fake_type), type_as_string(&inp.second_fake_type));
 }
 
 fn print_tokens(inp : &Vec<Token>) {
