@@ -79,7 +79,7 @@ fn main() {
     }
 
     if file_name.is_none() {
-        println!("file name error");
+        println!("Error: No file name provided");
         exit(1);
     }
 
@@ -104,7 +104,6 @@ fn main() {
             buf.insert(i, "0".to_string());
         }
         if i < buf.len() - 1 && buf[i] == "'" && buf[i + 1] == "'" {
-            println!("JJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJ");
             buf.remove(i);
             buf.remove(i);
             buf.insert(i, "' '".to_string());
@@ -155,7 +154,7 @@ fn main() {
         }
     }
 
-    print_string_vec(&buf);
+    //print_string_vec(&buf);
 
     let mut put = true;
     let mut tokens : Vec<Token> = buf.into_iter().map( |x| {
@@ -207,7 +206,6 @@ fn main() {
             if i > 0 {
                 i -= 1;
             }
-            print!("removed smthn");
         }
         i += 1;
     }
@@ -251,11 +249,9 @@ fn main() {
                             println!("Error: Invalid type for variable declaration");
                             exit(1);
                         };
-                    println!("~ {}", type_as_string(&tokens[i + 2].type_id));
                     if tokens[i + 2].type_id == TypeID::Ptr {
                         var_names[scope_count].push((tokens[i].text_if_applicable.clone(), TypeID::Ptr, tokens[i].fake_type.clone()));
                     } else {
-                        println!("I PUT A {} OF FAKE TYPE {}", tokens[i].text_if_applicable.clone(), type_as_string(&tokens[i].fake_type));
                         var_names[scope_count].push((tokens[i].text_if_applicable.clone(), tokens[i].fake_type.clone(), TypeID::None));
                     }
                 }
@@ -309,7 +305,6 @@ fn main() {
             doing = false;
         }
         if doing {
-            println!("HUIH {}", tokens[i].text_if_applicable);
             let msg = match tokens[i].type_id {
                 TypeID::VariableDeclaration => Some("Error: Cannot define a variable in a 'do'"),
                 _ => None
@@ -340,7 +335,6 @@ fn main() {
         for cntr in 0..(scope_count + 1) {
             for name in &var_names[cntr] {
                 if tokens[i].text_if_applicable == name.0 {
-                    println!("TURNING A {} INTO A FAKE {}", name.0, type_as_string(&name.1));
                     tokens[i].type_id = TypeID::VariableName;
                     tokens[i].fake_type = name.1.clone();
                     tokens[i].second_fake_type = name.2.clone();
@@ -366,7 +360,7 @@ fn main() {
     tmp_vars.push(Vec::new());
     let mut tmp_vars_cntr : usize = 0;
 
-    print_tokens(&tokens);
+    //print_tokens(&tokens);
 
     let mut func_names : Vec<(String, usize, bool, (TypeID, TypeID))> = Vec::new(); //func name, how many inputs, whether to consume, (outType, outFakeType)
     let mut func_should_void_return = false;
@@ -410,7 +404,6 @@ fn main() {
                         tmp_vars.push(Vec::new());
                         tmp_vars_cntr += 1;
                         for d in 0..ns.len() {
-                            println!("{:?}, {}", tokens[i].text_if_applicable, i);
                             if ts[d].0 == TypeID::F32 || ts[d].0 == TypeID::F64 {
                                 tmp_vars[tmp_vars_cntr].push((ns[d].clone(), TypeID::FloatLiteral, ts[d].0.clone(), ts[d].1.clone()));
                             } else {
@@ -421,9 +414,6 @@ fn main() {
                         tmp_vars.push(Vec::new());
                         tmp_vars_cntr += 1;
                     }
-
-                    println!("pusghed to tmp_vars. it is now {:?}", tmp_vars);
-
                 }
             }
         }
@@ -446,7 +436,6 @@ fn main() {
                     cntr += 1;
                 }
                 if tokens[orig + cntr + 2].text_if_applicable == "noconsu" {
-                    println!("YO DO NOTTTT CONSUME OJAY?!!?????????????!!!!!!!!!!!!!!!!!!!!!!!");
                     consu = false;
                 }
                 if tokens[i].text_if_applicable == "fn" || tokens[i].text_if_applicable == "privfn" {
@@ -470,8 +459,7 @@ fn main() {
                         };
                     }
                 }
-                println!("WHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA {}", tokens[i].text_if_applicable);
-                print_string_vec(&params);
+                //print_string_vec(&params);
                 if tokens[i].text_if_applicable == "fn" {
                     for (i, p) in params.iter().enumerate() {
                         if i % 2 == 0 && i > 0 {
@@ -520,10 +508,6 @@ fn main() {
                 write.push_str(&*("define ".to_string() + &*fn_type + " %" + &*fn_name + "(" + &*params_str + ") {\n"));
                 func_names.push((fn_name.clone(), params.len() / 2, consu, fn_actual_out_type_tuple));
             }
-            if string_to_fake_type(&*fn_type).is_none() {
-                println!("Error: output type of function '{}' is invalid", &*fn_name);
-            }
-            println!("made a function {}, {}, {}", &*fn_name, params.len() / 2, consu);
 
             if fn_type == "void" {
                 func_should_void_return = true;
@@ -589,20 +573,16 @@ fn main() {
         if tokens[i].type_id == TypeID::Do {
             let mut names : Vec<(String, TypeID, TypeID, TypeID)> = Vec::new(); //name, type, fake type, second fake type
             let mut labels : Vec<(String, String, String)> = Vec::new(); //(enter1, enter2, exit)
-            print!("DO MENTIONED LESS GOO. Nearby toks are ");
-            print_token(&tokens[i - 1]);
-            print!(" and ");
-            print_token(&tokens[i + 1]);
-            println!();
+            // print_token(&tokens[i - 1]);
+            // print!(" and ");
+            // print_token(&tokens[i + 1]);
+            // println!();
             let mut length = 0;
             while i + length < tokens.len() && tokens[i + length].text_if_applicable != ";" {
                 length += 1;
             }
-            println!("len is {}", length);
             for j in (i + 1)..(i + length) {
-                println!("There too much shit coding-wuhhhh. {:?}", names);
                 if j > 0 && tokens[j].type_id == TypeID::FunctionName && tokens[j - 1].type_id != TypeID::FunctionDeclaration {
-                    println!("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
                     for a in 0..func_names.len() {
                         if func_names[a].0 == tokens[j].text_if_applicable {
                             let name = func_names[a].0.clone();
@@ -642,7 +622,6 @@ fn main() {
                             }
 
                             if consu {
-                                println!("YOOOOOOOO I ATE");
                                 for _ in 0..(inp_count) {
                                     names.pop();
                                 }
@@ -820,9 +799,6 @@ fn main() {
                     write.push_str(&*("store ".to_string() + type_as_string(&assignment.2) + " %" + &*assignment.0 + ", ptr %" + &*ptr.0 + "\n"));
                 }
                 if tokens[j].type_id == TypeID::GEP && names.len() > 1 {
-
-                    println!("!!!!!!!!!!!!!!!!!!!!!!!!!!!!shoutin lager lager lager lager shoutin lager lager lager lager shoutin lager lager lager lager. shoutin, lager lager lager-shoutin mega mega white thing mega mega white thing mega mega white thing mega mega.");
-
                     let ptr = names[names.len() - 2].clone();
                     let index = names[names.len() - 1].clone();
                     names.pop();
@@ -895,9 +871,7 @@ fn main() {
                 }
                 if tokens[j].type_id != TypeID::BinaryOperator {
                     if tokens[j].text_if_applicable.chars().nth(0).is_some() && tokens[j].text_if_applicable.chars().nth(0).unwrap() == '~' {
-                        println!("----level 1 {:?}", tmp_vars);
                         if tmp_vars.len() > 0 {
-                            println!("----level 2");
                             for a in 0..tmp_vars[tmp_vars_cntr].len() {
                                 let mut name : String = String::from("");
                                 for (b, x) in tokens[j].text_if_applicable.chars().enumerate() {
@@ -906,7 +880,6 @@ fn main() {
                                     }
                                 }
                                 if name == tmp_vars[tmp_vars_cntr][a].0 {
-                                    println!("----level 3");
                                     names.push((name.clone(), TypeID::IntegerLiteral, tmp_vars[tmp_vars_cntr][a].2.clone(), tmp_vars[tmp_vars_cntr][a].3.clone()));
                                 }
                             }
@@ -915,7 +888,6 @@ fn main() {
                         if tokens[j].type_id == TypeID::IntegerLiteral || tokens[j].type_id == TypeID::FloatLiteral {
                             let name = get_next_rand_string();
                             names.push((name.clone(), tokens[j].type_id.clone(), tokens[j].fake_type.clone(), TypeID::None));
-                            println!("I pushed a {} which is a {} but actually {}", &name, type_as_string(&tokens[j].type_id), type_as_string(&tokens[j].fake_type));
                             let str = match tokens[j].fake_type {
                                 TypeID::I32 => "%".to_string() + &*name + " = add i32 " + &*tokens[j].text_if_applicable + ", 0\n",
                                 TypeID::I8 => "%".to_string() + &*name + " = add i8 " + &*tokens[j].text_if_applicable + ", 0\n",
@@ -959,13 +931,11 @@ fn main() {
                             exit(1);
                         }
                         if fake_is_int(&value_1.2) {
-                            println!("IJADFYAMIP I CAN TAKE IT ANYMORE");
                             write.push_str(&*("%".to_string() + &*name.to_string() + " = add "));
                             write.push_str(&*(type_as_string(&value_1.2).to_string() + " %" + &*(value_1.0)));
                             write.push_str(&*(", %".to_string() + &*(value_2.0)));
                             write.push_str("\n");
                         } else {
-                            println!("i can indeed take it anymore");
                             write.push_str(&*("%".to_string() + &*name.to_string() + " = fadd "));
                             write.push_str(&*(type_as_string(&value_1.2).to_string() + " %" + &*(value_1.0)));
                             write.push_str(&*(", %".to_string() + &*(value_2.0)));
@@ -1259,23 +1229,13 @@ fn main() {
                     }
                 }
             }
-            print!("\nNames are: ");
-            for cntr in 0..names.len() {
-                print!("| {} ", type_as_string(&names[cntr].2));
-            }
-            println!();
 
             if names.len() > 0 {
                 last_name = names[names.len() - 1].clone();
             }
         }
 
-        // println!("progress: ");
-        // println!("{}", write);
-        // println!();
-
     }
-    println!("{}", write);
 
     let mut write_file = File::create("out.ll").expect("Couldn't make write file");
     let tmp = write.into_bytes();
@@ -1355,23 +1315,23 @@ fn string_to_fake_type(inp : &str) -> Option<TypeID> {
     }
 }
 
-fn print_string_vec(inp : &Vec<String>) {
-    print!("[");
-    for i in inp {
-        print!("{}, ", i);
-    }
-    print!("]\n");
-}
+// fn print_string_vec(inp : &Vec<String>) {
+//     print!("[");
+//     for i in inp {
+//         print!("{}, ", i);
+//     }
+//     print!("]\n");
+// }
 
-fn print_token(inp : &Token) {
-    print!("(text: {}, type: {}, fake type: {}, second fake type: {})", inp.text_if_applicable, type_as_string(&inp.type_id), type_as_string(&inp.fake_type), type_as_string(&inp.second_fake_type));
-}
+// fn print_token(inp : &Token) {
+//     print!("(text: {}, type: {}, fake type: {}, second fake type: {})", inp.text_if_applicable, type_as_string(&inp.type_id), type_as_string(&inp.fake_type), type_as_string(&inp.second_fake_type));
+// }
 
-fn print_tokens(inp : &Vec<Token>) {
-    print!("[\n");
-    for i in inp {
-        print_token(i);
-        println!();
-    }
-    print!("]\n");
-}
+// fn print_tokens(inp : &Vec<Token>) {
+//     print!("[\n");
+//     for i in inp {
+//         print_token(i);
+//         println!();
+//     }
+//     print!("]\n");
+// }
